@@ -1,4 +1,3 @@
-import numpy as np
 import sys, os
 #注意到相当于将当前脚本移到code目录下执行
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
