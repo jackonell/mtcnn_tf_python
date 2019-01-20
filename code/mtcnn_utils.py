@@ -4,44 +4,39 @@ def IOU(bbx,target):
     """
      计算IOU得分:
      (Area of Overlap)/(Area of Union)
+     要有python矩阵计算的思维，尽量少用for循环
 
     :bbx: 需要判定的框
     :target: 进行IOU计算的真实bbx集合
     :returns: iou最高得分与对应gt bbox
 
     """
-    score = 0
-    rbbx = np.zeros(4)
-    bbx_area = bbx[2]*bbx[3]
+    bbx_area    = bbx[2]*bbx[3]
+    target_area = target[:,2]*target[:,3]
 
-    for gtb in target:
-        min_left = min(bbx[0],gtb[0])
-        max_right = max(bbx[0]+bbx[2],gtb[0]+gtb[2])
-        inter_width = bbx[2]+gtb[2]-(max_right-min_left)
+    nx1 = np.maximum(bbx[0],target[:,0])
+    ny1 = np.maximum(bbx[1],target[:,1])
+    nx2 = np.minimum(bbx[0]+bbx[2],target[:,0]+target[:,2])
+    ny2 = np.minimum(bbx[1]+bbx[3],target[:,1]+target[:,3])
 
-        if inter_width <= 0:
-            continue
+    width  = np.maximum(0,nx2-nx1)
+    height = np.maximum(0,ny2-ny1)
 
-        min_top = min(bbx[1],gtb[1])
-        max_bottom = max(bbx[1]+bbx[3],gtb[1]+gtb[3])
-        inter_height = bbx[3]+gtb[3]-(max_bottom-min_top)
+    inter_area = width*height
 
-        if inter_height <= 0:
-            continue
+    iou = inter_area/(bbx_area+target_area-inter_area)
 
-        gtarea = gtb[2]*gtb[3]
-        interarea = inter_width*inter_height
+    return iou
 
-        tscore = interarea/(gtarea+bbx_area-interarea)
-
-        if tscore > score:
-            score = tscore
-            rbbx = gtb
-
-    return score,rbbx
 
 if __name__ == "__main__":
     a = np.array([3,3,2,2])
-    b = np.array([2,2,4,4])
-    s,_ = IOU(a,b.reshape(-1,4))
-    print(s,b)
+    b = np.array([0,0,2,2])
+
+    for x in range(6):
+        for y in range(6):
+            t = np.array([x,y,2,2])
+            b = np.vstack((b,t))
+
+    s = IOU(a,b)
+    print(np.hstack((b,s.reshape(-1,1))))

@@ -16,6 +16,7 @@ def format_data_file():
     res = ""
     count = 0
     cend = 0
+    nn = 0
     for oneline in content_list:
         if count == 1:
             cend = int(oneline)
@@ -24,6 +25,8 @@ def format_data_file():
         else:
             temp = oneline.split()
             res += " " +  ' '.join(temp[0:4])
+            if int(temp[2]) > 20 and  int(temp[3]) > 20:
+                nn = nn+1
         count = count+1
         if count == cend+2:
             count=0
@@ -32,5 +35,6 @@ def format_data_file():
     with open(cfg.PNET_FORMATTER_TXT_PATH,"w") as f:
         f.write(res)
 
+    print(nn)
 if __name__ == "__main__":
     format_data_file()
