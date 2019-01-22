@@ -32,7 +32,7 @@ def format_data_file():
             count=0
             res += "\n"
 
-    with open(cfg.PNET_FORMATTER_TXT_PATH,"w") as f:
+    with open(cfg.PNET_TRAIN_FORMATTER_TXT_PATH,"w") as f:
         f.write(res)
 
     print(nn)
