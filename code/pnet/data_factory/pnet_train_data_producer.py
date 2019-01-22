@@ -82,29 +82,23 @@ def detection_data():
                    # idx = idx+1
 
            for i in range(20):
-               # # pos and part face size [minsize*0.8,maxsize*1.25]
-               # size = np.random.randint(int(min(w, h) * 0.8), np.ceil(1.25 * max(w, h)))
-
-               # #print (box)
-               # delta_x = np.random.randint(-w * 0.2, w * 0.2)
-               # delta_y = np.random.randint(-h * 0.2, h * 0.2)
-
-               # #show this way: nx1 = max(x1+w/2-size/2+delta_x)
-               # # x1+ w/2 is the central point, then add offset , then deduct size/2
-               # # deduct size/2 to make sure that the right bottom corner will be out of
-               # nx = int(max(x + w / 2 + delta_x - size / 2, 0))
-               # #show this way: ny1 = max(y1+h/2-size/2+delta_y)
-               # ny = int(max(y + h / 2 + delta_y - size / 2, 0))
                #需要保证IOU的值较大
                size = np.random.randint(min(w,h)*0.8,max(w,h)*1.2)
 
-               nx = np.random.randint(max(0,x-0.2*size),min(x+w-0.8*size,img_width))
-               ny = np.random.randint(max(0,y-0.2*size),min(y+h-0.8*size,img_height))
+               #确定中心点的范围，而后知左上角
+               nx = np.random.randint(max(0,x+0.3*w-0.5*size),min(x+0.7*w-0.5*size,img_width))
+               ny = np.random.randint(max(0,y+0.3*h-0.5*size),min(y+0.7*h-0.5*size,img_height))
 
                nbox = np.array([nx,ny,size,size])
-               iou = IOU(nbox,bbxs)
-               print(nbox)
-               print(iou)
+               
+               offset_x = (x-nx)/float(size)
+               offset_y = (y-ny)/float(size)
+               offset_w = (w-size)/float(size)
+               offset_h = (h-size)/float(size)
+
+               #依据当前框计算
+               iou = IOU(nbox,bbx.reshape(1,-1))
+               
                if np.max(iou) > 0.65:
                    crop_img = img[ny:ny+size,nx:nx+size]
     #               crop_img = cv2.resize(crop_img,(12,12))
