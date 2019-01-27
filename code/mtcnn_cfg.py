@@ -3,9 +3,13 @@ from easydict import EasyDict as edict
 cfg = edict()
 
 #原始数据集中的索引与标签文件
-cfg.PNET_ORIFINAL_TXT_PATH = "../data/origin/wider_face_split/wider_face_train_bbx_gt.txt"
+cfg.PNET_ORIGINAL_TXT_PATH = "../data/origin/wider_face_split/wider_face_train_bbx_gt.txt"
 #原始数据集中图片地址
 cfg.PNET_ORIGINAL_IMG_PATH = "../data/origin/WIDER_train/images/"
+#原始特征点数据集中的索引与标签文件
+cfg.PNET_ORIGINAL_LANDMARK_TXT_PATH = "../data/origin/testImageList.txt"
+#原始特征点数据集中的图片地址
+cfg.PNET_ORIGINAL_LANDMARK_IMG_PATH = "../data/origin/"
 
 #-------------pnet-------------------
 #经过规范化后的索引与标签文件

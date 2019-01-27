@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import tensorflow as tf
 import sys
-
+#用tfrecord 可以加快速度，不用一张张图片的读取
 def _int64_feature(value):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
