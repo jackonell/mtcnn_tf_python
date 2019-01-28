@@ -1,6 +1,5 @@
 import tensorflow as tf
 
-
 def PNet(input):
     cb = cnnbox()
 
@@ -13,15 +12,7 @@ def PNet(input):
     bbr_pred      = cb.conv2d(pnet,"conv4_2",32,4,filter_size=[1,1])
     landmark_pred = cb.conv2d(pnet,"conv4_3",32,10,filter_size=[1,1])
 
-    fcls_pred = tf.reshape(fcls_pred,(1,-1))
-    cls_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=))
-    bbr_loss = tf.reduce_mean(tf.square())
-    landmark_loss = tf.reduce_mean(tf.square())
-
-    loss = cls_loss+0.5*bbr_loss+0.5*landmark_loss
-    optimizer = tf.train.AdamOptimizer(learning_rate=0.001).minimize(loss)
-
-    return optimizer,loss
+    return fcls_pred,bbr_pred,landmark_pred
 
 def RNet(input):
     cb = cnnbox()

@@ -1,5 +1,30 @@
 import numpy as np
 
+def nms(bbxs,confidences,thresh):
+    """
+    对计算出的框进行极大值抑制（重叠度过高的框进行删减）
+
+    :bbxs: TODO
+    :scores: TODO
+    :returns: TODO
+
+    """
+    order_idx =  np.argsort(confidences)[::-1]
+    remain = []
+
+    where order_idx.size() > 0:
+        # 记录得分最大的框的索引
+        cidx = order_idx[0]
+        remain.append(cidx)
+        bbx = bbxs[cidx]
+        target = bbxs[order_idx[1:]]
+        iou = IOU(bbx,target)
+
+        idxs = np.where(iou <= thresh)
+        # 因为idxs是以原数组第二个位置为基准的坐标,所以要+1
+        order_idx = order_idx[idxs+1]
+
+
 def IOU(bbx,target):
     """
      计算IOU得分:
@@ -30,13 +55,15 @@ def IOU(bbx,target):
 
 
 if __name__ == "__main__":
-    a = np.array([3,3,2,2])
-    b = np.array([0,0,2,2])
+    # a = np.array([3,3,2,2])
+    # b = np.array([0,0,2,2])
 
-    for x in range(6):
-        for y in range(6):
-            t = np.array([x,y,2,2])
-            b = np.vstack((b,t))
+    # for x in range(6):
+        # for y in range(6):
+            # t = np.array([x,y,2,2])
+            # b = np.vstack((b,t))
 
-    s = IOU(a,b)
-    print(np.hstack((b,s.reshape(-1,1))))
+    # s = IOU(a,b)
+    # print(np.hstack((b,s.reshape(-1,1))))
+    confidences = []
+    bbxs = []
