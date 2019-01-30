@@ -6,6 +6,41 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
 from mtcnn_cfg import cfg
 from mtcnn_utils import IOU
 
+def format_data_file():
+    """
+    将检测人脸的txt文件格式化
+    """
+    content = ""
+    with open(cfg.PNET_ORIFINAL_TXT_PATH,"r") as f:
+       content = f.read()
+
+    content_list = content.split("\n")
+
+    res = ""
+    count = 0
+    cend = 0
+    nn = 0
+    for oneline in content_list:
+        if count == 1:
+            cend = int(oneline)
+        elif count == 0:
+            res += oneline
+        else:
+            temp = oneline.split()
+            res += " " +  ' '.join(temp[0:4])
+            if int(temp[2]) > 20 and  int(temp[3]) > 20:
+                nn = nn+1
+        count = count+1
+        if count == cend+2:
+            count=0
+            res += "\n"
+
+    with open(cfg.PNET_TRAIN_FORMATTER_TXT_PATH,"w") as f:
+        f.write(res)
+
+    print(nn)
+
+
 def landmark_data():
     """
     产生用于训练pnet的landmark数据
