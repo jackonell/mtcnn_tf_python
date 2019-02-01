@@ -40,7 +40,7 @@ def format_data_file():
 
     print(nn)
 
-def landmark_crop_rotate_flip(img,bbx,landmark,rotate,is_flip,filename):
+def landmark_crop_rotate_flip(img,bbx,landmark,rotate,is_flip):
     """
     从原始landmark图片和landmark产生新的sample
 
@@ -50,7 +50,6 @@ def landmark_crop_rotate_flip(img,bbx,landmark,rotate,is_flip,filename):
     :is_crop: 是否剪裁
     :rotate: 旋转角度
     :is_flip: 是否翻转
-    :returns: 处理后的图片与landmark
 
     """
     bbx = np.array(bbx).reshape((-1,2))
@@ -89,8 +88,6 @@ def landmark_crop_rotate_flip(img,bbx,landmark,rotate,is_flip,filename):
        ioum = np.max(iou)
 
     bbx = np.array([nx,nx+size,ny,ny+size]).reshape((-1,2))
-    if ioum < 0.85:
-        return
 
     # 翻转处理
     if is_flip:
@@ -102,12 +99,6 @@ def landmark_crop_rotate_flip(img,bbx,landmark,rotate,is_flip,filename):
     # 图像旋转
     matrix = cv2.getRotationMatrix2D((width/2,height/2),rotate,1)
     dst = cv2.warpAffine(img,matrix,(width,height))
-
-    # tt = bbx
-    # xx1,xx2 = tt[:,0]
-    # yy1,yy2 = tt[:,1]
-    # test_img = dst[int(yy1):int(yy2),int(xx1):int(xx2)]
-    # cv2.imwrite("ss.jpg",test_img)
 
     # 特征点旋转
     ones = np.ones(5).reshape((-1,1))
@@ -125,7 +116,7 @@ def landmark_crop_rotate_flip(img,bbx,landmark,rotate,is_flip,filename):
     minx = int(np.min(bbx[:,0]))
     maxy = int(np.max(bbx[:,1]))
     miny = int(np.min(bbx[:,1]))
-    print(ioum)
+    # print(ioum)
     # 裁剪图像
     crop_img = dst[miny:maxy,minx:maxx]
 
@@ -133,13 +124,12 @@ def landmark_crop_rotate_flip(img,bbx,landmark,rotate,is_flip,filename):
     landmark[:,0] = (landmark[:,0]-minx)/size
     landmark[:,1] = (landmark[:,1]-miny)/size
 
-     
-
     # landmark = landmark*size
 
     # for ma in landmark:
         # cv2.circle(crop_img,(int(ma[0]),int(ma[1])),3,(0,0,225),-1)
     # cv2.imwrite(filename,crop_img)
+    return crop_img,landmark
 
 def landmark_data():
     """
@@ -162,33 +152,30 @@ def landmark_data():
         if flag > 0:
             break
         flag = flag+1
+        #ma = "net_7876\\111_0_0.jpg 38 236 94 292 91.000000 149.000000 196.000000 141.000000 174.000000 206.000000 115.000000 262.000000 198.000000 256.000000"
         ma = ma.strip().split(" ")
 
+        print(ma)
         img_path = cfg.PNET_ORIGINAL_LANDMARK_IMG_PATH+ma[0].replace("\\","/")
         bbx = list(map(int,ma[1:5]))
         landmark = list(map(float,ma[5:]))
         img = cv2.imread(img_path,cv2.IMREAD_COLOR)
 
-        for i in range(10):
+        print(img_path)
+        for i in range(5):
             for is_crop in [True,False]:
                 for rotate_degree in np.arange(-10,15,5):
-                    # print("    ")
-                    landmark_crop_rotate_flip(img,bbx,landmark,rotate_degree,is_crop,str(num_landmark)+".jpg")
-                    # print(rotate_degree,is_crop,str(num_landmark)+".jpg")
+                    crop_img,nlandmark = landmark_crop_rotate_flip(img,bbx,landmark,rotate_degree,is_crop)
+                    resized_img = cv2.resize(crop_img,(12,12))
+                    cv2.imwrite(cfg.PNET_TRAIN_IMG_PATH+"landmark_"+str(num_landmark)+".jpg",resized_img)
+                    nlandmark = nlandmark.reshape((-1))
+                    nlandmark = list(map(str,nlandmark))
+                    flandmark.write("landmark_%s.jpg 2 %s\n"%(num_landmark," ".join(nlandmark)))
                     num_landmark = num_landmark+1
-                    # print("    ")
 
-        print(img_path)
-        # print(bbx)
-        # print(landmark)
-        # #原图
-        # img = cv2.imread(img_path,cv2.IMREAD_COLOR)
-        # crop_img = img[bbx[2]:bbx[3],bbx[0]:bbx[1]]
-        # resized_img = crop_img#cv2.resize(crop_img,(12,12))
-        # cv2.imwrite(cfg.PNET_TRAIN_IMG_PATH+"landmark_"+str(num_landmark)+".jpg",resized_img)
-        # landmark = list(map(str,landmark))
-        # flandmark.write("landmark_%s.jpg 2 %s"%(num_landmark," ".join(landmark)))
+        print("一共产生landmark图片%d张"%(num_landmark-1))
 
+    flandmark.close()
 
 
 
