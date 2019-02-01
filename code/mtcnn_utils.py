@@ -12,7 +12,7 @@ def nms(bbxs,confidences,thresh):
     order_idx =  np.argsort(confidences)[::-1]
     remain = []
 
-    where order_idx.size() > 0:
+    while order_idx.size > 0:
         # 记录得分最大的框的索引
         cidx = order_idx[0]
         remain.append(cidx)

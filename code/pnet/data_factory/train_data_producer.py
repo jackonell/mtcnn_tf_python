@@ -40,11 +40,114 @@ def format_data_file():
 
     print(nn)
 
+def landmark_crop_rotate_flip(img,bbx,landmark,rotate,is_flip,filename):
+    """
+    从原始landmark图片和landmark产生新的sample
+
+    :img: 图片
+    :bbx: 人脸框
+    :landmark: 特征点
+    :is_crop: 是否剪裁
+    :rotate: 旋转角度
+    :is_flip: 是否翻转
+    :returns: 处理后的图片与landmark
+
+    """
+    bbx = np.array(bbx).reshape((-1,2))
+    landmark = np.array(landmark).reshape((-1,2))
+    width = img.shape[0]
+    height = img.shape[1]
+
+    w,h = bbx[:,1]-bbx[:,0]
+    x,y = bbx[:,0]
+
+    size = 0
+    nx = 0
+    ny = 0
+
+    # 产生iou大于0.65的框
+    ioum = 0
+    while ioum < 0.65:
+       #需要保证IOU的值较大
+       size = np.random.randint(min(w,h)*0.8,max(w,h)*1.2)
+
+       #确定中心点的范围，而后知左上角
+       nx = np.random.randint(x+0.3*w-0.5*size,x+0.7*w-0.5*size)
+       ny = np.random.randint(y+0.3*h-0.5*size,y+0.7*h-0.5*size)
+
+       nx = max(nx,0)
+       ny = max(ny,0)
+
+       if nx+size > width or ny+size > height:
+           continue
+
+       nbox = np.array([nx,ny,size,size])
+       target = np.array([x,y,w,h])
+
+       #依据当前框计算
+       iou = IOU(nbox,target.reshape(1,-1))
+       ioum = np.max(iou)
+
+    bbx = np.array([nx,nx+size,ny,ny+size]).reshape((-1,2))
+    if ioum < 0.85:
+        return
+
+    # 翻转处理
+    if is_flip:
+        img = cv2.flip(img,1)
+        bbx[0,[0,1]] = width-bbx[0,[1,0]]
+        landmark[:,0] = width-landmark[:,0]
+
+    # 旋转处理
+    # 图像旋转
+    matrix = cv2.getRotationMatrix2D((width/2,height/2),rotate,1)
+    dst = cv2.warpAffine(img,matrix,(width,height))
+
+    # tt = bbx
+    # xx1,xx2 = tt[:,0]
+    # yy1,yy2 = tt[:,1]
+    # test_img = dst[int(yy1):int(yy2),int(xx1):int(xx2)]
+    # cv2.imwrite("ss.jpg",test_img)
+
+    # 特征点旋转
+    ones = np.ones(5).reshape((-1,1))
+    landmark = np.hstack((landmark,ones))
+    landmark = np.dot(landmark,matrix.T)
+    # 人脸框旋转
+    tbbx = np.copy(bbx)
+    tbbx[1,[0,1]] = tbbx[1,[1,0]]
+    # 四个点
+    bbx = np.vstack((bbx.T,tbbx.T))
+    bbx = np.hstack((bbx,ones[:4]))
+    bbx = np.dot(bbx,matrix.T)
+
+    maxx = int(np.max(bbx[:,0]))
+    minx = int(np.min(bbx[:,0]))
+    maxy = int(np.max(bbx[:,1]))
+    miny = int(np.min(bbx[:,1]))
+    print(ioum)
+    # 裁剪图像
+    crop_img = dst[miny:maxy,minx:maxx]
+
+    # 规一化特征点
+    landmark[:,0] = (landmark[:,0]-minx)/size
+    landmark[:,1] = (landmark[:,1]-miny)/size
+
+     
+
+    # landmark = landmark*size
+
+    # for ma in landmark:
+        # cv2.circle(crop_img,(int(ma[0]),int(ma[1])),3,(0,0,225),-1)
+    # cv2.imwrite(filename,crop_img)
 
 def landmark_data():
     """
     产生用于训练pnet的landmark数据
-    此处数据的产生不再采用随机剪裁，而是采用翻转，颜色变化
+    数据产生方式：
+    1.iou大于0.65的剪裁(10)
+    2.左右小幅度旋转(5度，10度)
+    3.水平翻转
     """
     flandmark = open(cfg.PNET_TRAIN_LANDMARK_TXT_PATH,"w")
 
@@ -64,17 +167,27 @@ def landmark_data():
         img_path = cfg.PNET_ORIGINAL_LANDMARK_IMG_PATH+ma[0].replace("\\","/")
         bbx = list(map(int,ma[1:5]))
         landmark = list(map(float,ma[5:]))
+        img = cv2.imread(img_path,cv2.IMREAD_COLOR)
+
+        for i in range(10):
+            for is_crop in [True,False]:
+                for rotate_degree in np.arange(-10,15,5):
+                    # print("    ")
+                    landmark_crop_rotate_flip(img,bbx,landmark,rotate_degree,is_crop,str(num_landmark)+".jpg")
+                    # print(rotate_degree,is_crop,str(num_landmark)+".jpg")
+                    num_landmark = num_landmark+1
+                    # print("    ")
 
         print(img_path)
-        print(bbx)
-        print(landmark)
-        #原图
-        img = cv2.imread(img_path,cv2.IMREAD_COLOR)
-        crop_img = img[bbx[1]:bbx[1]+bbx[3],bbx[0]:bbx[0]+bbx[2]]
-        resized_img = cv2.resize(crop_img,(12,12))
-        cv2.imwrite(cfg.PNET_ORIGINAL_LANDMARK_IMG_PATH+"landmark_"+str(num_landmark)+".jpg",resized_img)
-        landmark = list(map(str,landmark))
-        flandmark.write("landmark_%s.jpg 2 %s"%(num_landmark," ".join(landmark)))
+        # print(bbx)
+        # print(landmark)
+        # #原图
+        # img = cv2.imread(img_path,cv2.IMREAD_COLOR)
+        # crop_img = img[bbx[2]:bbx[3],bbx[0]:bbx[1]]
+        # resized_img = crop_img#cv2.resize(crop_img,(12,12))
+        # cv2.imwrite(cfg.PNET_TRAIN_IMG_PATH+"landmark_"+str(num_landmark)+".jpg",resized_img)
+        # landmark = list(map(str,landmark))
+        # flandmark.write("landmark_%s.jpg 2 %s"%(num_landmark," ".join(landmark)))
 
 
 

@@ -32,4 +32,11 @@ def train(arg1):
     :returns: TODO
 
     """
-    pass
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        while True:
+            batch_cls
+            batch_bbx
+            batch_landmark
+            batch_img
+            sess.run([optimizer,loss],feed_dict={})

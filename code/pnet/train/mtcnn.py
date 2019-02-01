@@ -28,6 +28,7 @@ def RNet(input):
     bbr_pred      = cb.fc(rnet,"fc2_2",128,4)
     landmark_pred = cb.fc(rnet,"fc2_3",128,10)
 
+    return fcls_pred,bbr_pred,landmark_pred
 
 def ONet(input):
     cb = cnnbox()
@@ -45,6 +46,5 @@ def ONet(input):
     bbr_pred = cb.fc(onet,"fc2_2",256,4)
     landmark_pred = cb.fc(onet,"fc2_3",256,10)
 
-
-
+    return fcls_pred,bbr_pred,landmark_pred
 
