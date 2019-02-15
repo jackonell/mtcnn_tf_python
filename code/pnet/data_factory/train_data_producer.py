@@ -112,10 +112,18 @@ def landmark_crop_rotate_flip(img,bbx,landmark,rotate,is_flip):
     bbx = np.hstack((bbx,ones[:4]))
     bbx = np.dot(bbx,matrix.T)
 
+
     maxx = int(np.max(bbx[:,0]))
     minx = int(np.min(bbx[:,0]))
     maxy = int(np.max(bbx[:,1]))
     miny = int(np.min(bbx[:,1]))
+
+    # print(x,y,w,h)
+    # print(nx,ny,size)
+    # print(bbx)
+    # print(rotate)
+    # print(minx,maxx,miny,maxy)
+
     # print(ioum)
     # 裁剪图像
     crop_img = dst[miny:maxy,minx:maxx]
@@ -149,13 +157,12 @@ def landmark_data():
     num_landmark = 1
 
     for ma in landmark_annotations:
-        if flag > 0:
-            break
-        flag = flag+1
-        #ma = "net_7876\\111_0_0.jpg 38 236 94 292 91.000000 149.000000 196.000000 141.000000 174.000000 206.000000 115.000000 262.000000 198.000000 256.000000"
+        # if flag > 0:
+            # break
+        # flag = flag+1
+        # ma = "net_7876\\111_0_0.jpg 38 236 94 292 91.000000 149.000000 196.000000 141.000000 174.000000 206.000000 115.000000 262.000000 198.000000 256.000000"
         ma = ma.strip().split(" ")
 
-        print(ma)
         img_path = cfg.PNET_ORIGINAL_LANDMARK_IMG_PATH+ma[0].replace("\\","/")
         bbx = list(map(int,ma[1:5]))
         landmark = list(map(float,ma[5:]))
@@ -166,6 +173,9 @@ def landmark_data():
             for is_crop in [True,False]:
                 for rotate_degree in np.arange(-10,15,5):
                     crop_img,nlandmark = landmark_crop_rotate_flip(img,bbx,landmark,rotate_degree,is_crop)
+                    # 如果人脸框旋转后超出了图片，则忽略当前
+                    if crop_img.shape[0]*crop_img.shape[1] <= 0:
+                        continue
                     resized_img = cv2.resize(crop_img,(12,12))
                     cv2.imwrite(cfg.PNET_TRAIN_IMG_PATH+"landmark_"+str(num_landmark)+".jpg",resized_img)
                     nlandmark = nlandmark.reshape((-1))
@@ -302,12 +312,14 @@ def detection_data():
 
         num = num_neg+num_par+num_pos
         print("一共产生图片%d张：neg-%d张，par-%d张，pos-%d张"%(num,num_neg,num_par,num_pos))
+        if num_neg > 750000 and num_par > 250000 and num_pos > 250000:
+            break
 
     fneg.close()
     fpar.close()
     fpos.close()
 
 if __name__ == "__main__":
-    #detection_data()
-    landmark_data()
+    detection_data()
+    # landmark_data()
 
