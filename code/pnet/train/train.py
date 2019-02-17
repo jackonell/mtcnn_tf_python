@@ -1,22 +1,21 @@
 import numpy as np
 import tensorflow as tf
+import sys, os
+#注意到相当于将当前脚本移到code目录下执行
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
+from mtcnn_cfg import cfg
+from mtcnn import PNet
 
 def cls_loss(pred,label):
     """
     计算人脸分类误差
-
-    :pred: TODO
-    :label: TODO
-    :returns: TODO
-
     """
-    pred = tf.squeeze(pred) 
+    pred = tf.squeeze(pred)
+
 
 def read_batch_data_from_tfrecord():
     """
     从tfrecord中读取数据
-    :returns: TODO
-
     """
     data_path = cfg.PNET_TRAIN_TFRECORDS
     feature = {'sample/image': tf.FixedLenFeature([],tf.string),
@@ -44,17 +43,14 @@ def read_batch_data_from_tfrecord():
     return batch_images,batch_labels,batch_bbxs,batch_landmarks
 
 
-def train_net_wise(current_net,ratio):
+def train_net_wise(current_net,ratio,size,batch_size):
     """
     训练网络
-    :current_net: TODO
-    :ratio: TODO
-    :returns: TODO
     """
-    IMG = tf.placeholder(tf.float32,[None,size,size,3],name="IMG")
-    CLS = tf.placeholder(tf.float32,[None],name="CLS")
-    BBX = tf.placeholder(tf.float32,[None,size,size,4],name="BBX")
-    LANDMARK = tf.placeholder(tf.float32,[None,size,size,10],name="LANDMARK")
+    IMG = tf.placeholder(tf.float32,[batch_size,size,size,3],name="IMG")
+    CLS = tf.placeholder(tf.float32,[batch_size],name="CLS")
+    BBX = tf.placeholder(tf.float32,[batch_size,4],name="BBX")
+    LANDMARK = tf.placeholder(tf.float32,[batch_size,10],name="LANDMARK")
 
     fcls_pred,bbr_pred,landmark_pred = current_net(IMG)
 
@@ -75,6 +71,9 @@ def train():
     batch_images,batch_labels,batch_bbxs,batch_landmarks = read_batch_data_from_tfrecord()
     init_op = tf.group(tf.global_variables_initializer(),tf.local_variables_initializer())
 
+    loss,optimizer = train_net_wise(PNet,[1,0.5,0.5],12,50)
+    saver = tf.train.Saver()
+
     with tf.Session() as sess:
         sess.run(init_op)
 
@@ -82,12 +81,18 @@ def train():
         threads = tf.train.start_queue_runners(coord=coord)
 
         # 用10000批数据训练,每一批50张图片
-        for batch_idx in range(10000):
+        for batch_idx in range(1):
             bimg,blabel,bbbx,blandmark = sess.run([batch_images,batch_labels,batch_bbxs,batch_landmarks])
 
-            # for i in range(blabel.size):
-                # print("%d %r %r"%(blabel[i],bbbx[i],blandmark[i]))
+            _,closs = sess.run([optimizer,loss],feed_dict={IMG:bimg,CLS:blabel,BBX:bbbx,LANDMARK:blandmark})
+
+            # if batch_idx % 25 == 0:
+            print("训练批次：%d,当前loss：%f"%(batch_idx,closs))
+
+        saver.save(sess,cfg.PNET_MODEL_PATH,global_step=step)
 
         coord.request_stop()
         coord.join(threads)
-        sess.close()
+
+if __name__ == "__main__":
+    train()

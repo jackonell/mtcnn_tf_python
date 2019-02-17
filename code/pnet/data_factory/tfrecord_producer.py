@@ -30,7 +30,7 @@ def produce_train_tfrecord():
     产生用于训练的tfrecord
     """
     data = []
-    base_num = 250000
+    base_num = 10000
     with open(cfg.PNET_TRAIN_NEG_TXT_PATH,"r") as f:
         data = f.readlines()[:3*base_num]
 
@@ -41,7 +41,7 @@ def produce_train_tfrecord():
         data.extend(f.readlines()[:base_num])
 
     with open(cfg.PNET_TRAIN_LANDMARK_TXT_PATH,"r") as f:
-        data.extend(f.readlines())
+        data.extend(f.readlines()[:2*base_num])
 
     #打乱list顺序
     random.shuffle(data)
@@ -121,8 +121,7 @@ def read_train_tfrecord():
 
         coord.request_stop()
         coord.join(threads)
-        sess.close()
 
 if __name__ == "__main__":
-    produce_train_tfrecord()
-    # read_train_tfrecord()
+    # produce_train_tfrecord()
+    read_train_tfrecord()

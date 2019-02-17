@@ -21,4 +21,4 @@ cfg.PNET_TRAIN_PART_TXT_PATH = "../data/pdata/train_part.txt"
 cfg.PNET_TRAIN_LANDMARK_TXT_PATH = "../data/pdata/train_landmark.txt"
 cfg.PNET_TRAIN_IMG_PATH = "../data/pdata/images/"
 cfg.PNET_TRAIN_TFRECORDS = "../data/pdata/train.tfrecords"
-
+cfg.PNET_MODEL_PATH = "../data/pdata/models"
