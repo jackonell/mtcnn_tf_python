@@ -116,8 +116,15 @@ def read_train_tfrecord():
         for batch_idx in range(1):
             bimg,blabel,bbbx,blandmark = sess.run([batch_images,batch_labels,batch_bbxs,batch_landmarks])
 
-            for i in range(blabel.size):
-                print("%d %r %r"%(blabel[i],bbbx[i],blandmark[i]))
+            keeps = tf.where(tf.logical_or(tf.equal(blabel,1),tf.equal(blabel,0)))
+            filter_res = tf.gather(bbbx,keeps)
+            dd = tf.gather(blabel,keeps)
+
+            print("%r"%filter_res.eval())
+            print("%r"%dd.eval())
+
+            # for i in range(blabel.size):
+                # print("%r %d %r %r"%(keeps[i],blabel[i],bbbx[i],blandmark[i]))
 
         coord.request_stop()
         coord.join(threads)
