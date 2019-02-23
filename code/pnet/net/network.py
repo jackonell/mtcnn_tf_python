@@ -1,31 +1,29 @@
 import tensorflow as tf
 
+
+
 class cnnbox:
 
-    def __init__(self,activation_fn = None):
-        if activation_fn is None:
-            self.activation_fn = self.prelu
-        else:
-            self.activation_fn = activation_fn
+    def __init__(self,stdev=0.01):
+        self.stdev = stdev
 
     def conv2d(self, pre_layer, name , in_channels, out_channels, stride=[1,1,1,1], filter_size=[3,3], padding='VALID', activation_fn=None):
         with tf.variable_scope(name):
-            filter = tf.truncated_normal([filter_size[0],filter_size[1],in_channels,out_channels],0.0,0.001)
-            w_c = tf.Variable(filter,name='weight')
+            # filter = tf.truncated_normal([filter_size[0],filter_size[1],in_channels,out_channels],0.0,self.stdev)
+            # w_c = tf.Variable(filter,name='weight')
+            w_c = tf.get_variable(shape=[filter_size[0],filter_size[1],in_channels,out_channels],initializer=tf.contrib.layers.xavier_initializer(),name="weight")
 
-            bs = tf.truncated_normal([out_channels],0.0,0.001)
-            b_c = tf.Variable(bs,name='bias');
+            # bs = tf.truncated_normal([out_channels],0.0,self.stdev)
+            # b_c = tf.Variable(bs,name='bias');
+            b_c = tf.get_variable(shape=[out_channels],initializer=tf.contrib.layers.xavier_initializer(),name="bias")
 
             conv = tf.nn.conv2d(pre_layer,w_c,stride,padding=padding)
             cf  = tf.nn.bias_add(conv,b_c)
 
-            activation = None
-            if activation_fn == None:
-                activation = self.activation_fn(cf)
-            else:
-                activation = activation_fn(cf)
+            if activation_fn is not None:
+                cf = activation_fn(cf)
 
-            return activation
+            return cf
 
     def max_pool2d(self, pre_layer, name, stride=[1,2,2,1], filter_size=[1,2,2,1], padding='SAME'):
         with tf.variable_scope(name):
@@ -34,21 +32,22 @@ class cnnbox:
 
     def fc(self,pre_layer,name,in_size,out_size, activation_fn=None):
         with tf.variable_scope(name):
-            inc = tf.truncated_normal([in_size,out_size],0.0,0.001)
+            inc = tf.truncated_normal([in_size,out_size],0.0,self.stdev)
+            # inc = tf.truncated_normal([in_size,out_size])
             w_f = tf.Variable(inc,name='weight')
 
-            outc = tf.truncated_normal([out_size],0.0,0.001)
+            outc = tf.truncated_normal([out_size],0.0,self.stdev)
+            # outc = tf.truncated_normal([out_size])
             b_f = tf.Variable(outc,name='bias')
 
             x = tf.reshape(pre_layer,[-1,in_size])
             mul = tf.matmul(x,w_f)
             fc = tf.nn.bias_add(mul,b_f)
 
-            activation
-            if activation_fn != None:
-                activation = activation_fn(fc)
+            if activation_fn is not  None:
+                fc = activation_fn(fc)
 
-            return activation
+            return fc
 
     def prelu(self,x,name=None):
         if name is None:
