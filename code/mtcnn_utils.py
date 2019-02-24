@@ -24,6 +24,8 @@ def nms(bbxs,confidences,thresh):
         # 因为idxs是以原数组第二个位置为基准的坐标,所以要+1
         order_idx = order_idx[idxs+1]
 
+    return remain
+
 
 def IOU(bbx,target):
     """
