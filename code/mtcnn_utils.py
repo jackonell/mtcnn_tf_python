@@ -3,11 +3,6 @@ import numpy as np
 def nms(bbxs,confidences,thresh):
     """
     对计算出的框进行极大值抑制（重叠度过高的框进行删减）
-
-    :bbxs: TODO
-    :scores: TODO
-    :returns: TODO
-
     """
     order_idx =  np.argsort(confidences)[::-1]
     remain = []

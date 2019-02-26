@@ -1,12 +1,22 @@
 import tensorflow as tf
 
 
+def logtf(fn):
+    """
+    用于记录日志的注解
+    """
+    def logsth(*args):
+        layer = fn(*args)
+        print(layer.get_shape())
+
+    return logsth
 
 class cnnbox:
 
     def __init__(self,stdev=0.01):
         self.stdev = stdev
 
+    @logtf
     def conv2d(self, pre_layer, name , in_channels, out_channels, stride=[1,1,1,1], filter_size=[3,3], padding='VALID', activation_fn=None):
         with tf.variable_scope(name):
             # filter = tf.truncated_normal([filter_size[0],filter_size[1],in_channels,out_channels],0.0,self.stdev)
@@ -25,11 +35,13 @@ class cnnbox:
 
             return cf
 
+    @logtf
     def max_pool2d(self, pre_layer, name, stride=[1,2,2,1], filter_size=[1,2,2,1], padding='SAME'):
         with tf.variable_scope(name):
             maxp = tf.nn.max_pool(pre_layer,ksize=filter_size,strides=stride,padding=padding)
             return maxp
 
+    @logtf
     def fc(self,pre_layer,name,in_size,out_size, activation_fn=None):
         with tf.variable_scope(name):
             inc = tf.truncated_normal([in_size,out_size],0.0,self.stdev)

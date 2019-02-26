@@ -63,10 +63,10 @@ def read_batch_data_from_tfrecord():
     从tfrecord中读取数据
     """
     data_path = cfg.PNET_TRAIN_TFRECORDS
-    feature = {'image/encoded': tf.FixedLenFeature([],tf.string),
-            'image/label': tf.FixedLenFeature([],tf.int64),
-            'image/roi': tf.FixedLenFeature([4],tf.float32),
-            'image/landmark': tf.FixedLenFeature([10],tf.float32)}
+    feature = {'sample/image': tf.FixedLenFeature([],tf.string),
+            'sample/label': tf.FixedLenFeature([],tf.int64),
+            'sample/bbx': tf.FixedLenFeature([4],tf.float32),
+            'sample/landmark': tf.FixedLenFeature([10],tf.float32)}
 
     filename_queue = tf.train.string_input_producer([data_path],shuffle=True)
 
@@ -76,10 +76,10 @@ def read_batch_data_from_tfrecord():
 
     features = tf.parse_single_example(serialized_example,features=feature)
 
-    image    = tf.decode_raw(features['image/encoded'],tf.uint8)
-    label    = tf.cast(features['image/label'],tf.int32)
-    bbx      = tf.cast(features['image/roi'],tf.float32)
-    landmark = tf.cast(features['image/landmark'],tf.float32)
+    image    = tf.decode_raw(features['sample/image'],tf.unit8)
+    label    = tf.cast(features['sample/label'],tf.int32)
+    bbx      = tf.cast(features['sample/bbx'],tf.float32)
+    landmark = tf.cast(features['sample/landmark'],tf.float32)
 
     image = tf.reshape(image,[12,12,3])
     image = (tf.cast(image,tf.float32)-127.5)/128
@@ -149,3 +149,4 @@ def train():
 
 if __name__ == "__main__":
     train()
+
