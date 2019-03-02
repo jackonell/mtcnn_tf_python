@@ -1,6 +1,6 @@
 import numpy as np
 
-def nms(bbxs,confidences,thresh):
+def NMS(bbxs,confidences,thresh):
     """
     对计算出的框进行极大值抑制（重叠度过高的框进行删减）
     """
@@ -15,7 +15,11 @@ def nms(bbxs,confidences,thresh):
         target = bbxs[order_idx[1:]]
         iou = IOU(bbx,target)
 
+        # print(order_idx)
+        # print(iou)
         idxs = np.where(iou <= thresh)
+        idxs = np.array(idxs)[0]
+        # print(idxs+1)
         # 因为idxs是以原数组第二个位置为基准的坐标,所以要+1
         order_idx = order_idx[idxs+1]
 

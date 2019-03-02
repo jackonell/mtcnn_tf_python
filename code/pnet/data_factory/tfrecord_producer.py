@@ -30,7 +30,7 @@ def produce_train_tfrecord():
     产生用于训练的tfrecord
     """
     data = []
-    base_num = 10000
+    base_num = 250000
     with open(cfg.PNET_TRAIN_NEG_TXT_PATH,"r") as f:
         data = f.readlines()[:3*base_num]
 
@@ -45,21 +45,25 @@ def produce_train_tfrecord():
 
     #打乱list顺序
     random.shuffle(data)
-    # print(" ".join(data[:50]))
+    # print(len(data))
+    # print(" ".join(data[:10]))
 
     print(len(data))
     #打开一个TFRecords，用于写入
     tfrecords_writer = tf.python_io.TFRecordWriter(cfg.PNET_TRAIN_TFRECORDS)
     flag = 0
+    num = 1
 
     for line in data:
-        # if flag > 1000:
+        # if flag > 0:
             # break
         # flag = flag+1
         mls = line.strip().split()
 
         img = cv2.imread(cfg.PNET_TRAIN_IMG_PATH+mls[0])
-        img = img.astype(np.float32)
+        # print(cfg.PNET_TRAIN_IMG_PATH+mls[0])
+        #更符合情况
+        img = img.astype(np.uint8)
         label = int(mls[1])
         bbx = list(np.zeros(4,dtype=np.float))
         landmark = list(np.zeros(10,dtype=np.float))
@@ -76,6 +80,10 @@ def produce_train_tfrecord():
 
         example = tf.train.Example(features=tf.train.Features(feature=feature))
         tfrecords_writer.write(example.SerializeToString())
+
+        if num % 100 == 0:
+            print("一共需处理图片：%s, 已经处理：%s"%(len(data),num))
+        num = num+1
 
     tfrecords_writer.close()
 
@@ -98,7 +106,7 @@ def read_train_tfrecord():
 
         features = tf.parse_single_example(serialized_example,features=feature)
 
-        image    = tf.decode_raw(features['sample/image'],tf.float32)
+        image    = tf.decode_raw(features['sample/image'],tf.unit8)
         label    = tf.cast(features['sample/label'],tf.int32)
         bbx      = tf.cast(features['sample/bbx'],tf.float32)
         landmark = tf.cast(features['sample/landmark'],tf.float32)
@@ -130,5 +138,5 @@ def read_train_tfrecord():
         coord.join(threads)
 
 if __name__ == "__main__":
-    # produce_train_tfrecord()
-    read_train_tfrecord()
+    produce_train_tfrecord()
+    # read_train_tfrecord()

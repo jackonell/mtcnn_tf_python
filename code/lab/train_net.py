@@ -1,9 +1,8 @@
 import numpy as np
 import tensorflow as tf
-import math
 import sys, os
 #注意到相当于将当前脚本移到code目录下执行
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 from mtcnn_cfg import cfg
 from net.mtcnn import PNet
 
@@ -65,14 +64,10 @@ def read_batch_data_from_tfrecord():
     从tfrecord中读取数据
     """
     data_path = cfg.PNET_TRAIN_TFRECORDS
-    # feature = {'image/encoded': tf.FixedLenFeature([],tf.string),
-            # 'image/label': tf.FixedLenFeature([],tf.int64),
-            # 'image/roi': tf.FixedLenFeature([4],tf.float32),
-            # 'image/landmark': tf.FixedLenFeature([10],tf.float32)}
-    feature = {'sample/image': tf.FixedLenFeature([],tf.string),
-            'sample/label': tf.FixedLenFeature([],tf.int64),
-            'sample/bbx': tf.FixedLenFeature([4],tf.float32),
-            'sample/landmark': tf.FixedLenFeature([10],tf.float32)}
+    feature = {'image/encoded': tf.FixedLenFeature([],tf.string),
+            'image/label': tf.FixedLenFeature([],tf.int64),
+            'image/roi': tf.FixedLenFeature([4],tf.float32),
+            'image/landmark': tf.FixedLenFeature([10],tf.float32)}
 
     filename_queue = tf.train.string_input_producer([data_path],shuffle=True)
 
@@ -82,14 +77,10 @@ def read_batch_data_from_tfrecord():
 
     features = tf.parse_single_example(serialized_example,features=feature)
 
-    # image    = tf.decode_raw(features['image/encoded'],tf.uint8)
-    # label    = tf.cast(features['image/label'],tf.int32)
-    # bbx      = tf.cast(features['image/roi'],tf.float32)
-    # landmark = tf.cast(features['image/landmark'],tf.float32)
-    image    = tf.decode_raw(features['sample/image'],tf.uint8)
-    label    = tf.cast(features['sample/label'],tf.int32)
-    bbx      = tf.cast(features['sample/bbx'],tf.float32)
-    landmark = tf.cast(features['sample/landmark'],tf.float32)
+    image    = tf.decode_raw(features['image/encoded'],tf.uint8)
+    label    = tf.cast(features['image/label'],tf.int32)
+    bbx      = tf.cast(features['image/roi'],tf.float32)
+    landmark = tf.cast(features['image/landmark'],tf.float32)
 
     image = tf.reshape(image,[12,12,3])
     image = (tf.cast(image,tf.float32)-127.5)/128
@@ -123,22 +114,13 @@ def train():
     # filter_label = tf.squeeze(tf.gather(CLS,keeps))
     filter_label = tf.gather(CLS,keeps)
 
-    filter_label_ori = tf.where(tf.equal(filter_label,1),filter_label,1+filter_label) #要修改
-    filter_label_op = tf.where(tf.equal(filter_label,1),1-filter_label,1-filter_label) #要修改
+    filter_label = tf.where(tf.equal(filter_label,1),filter_label,1+filter_label) #要修改
+    filter_label_op = tf.where(tf.equal(filter_label,1),1-filter_label,2+filter_label) #要修改
 
-    filter_label = tf.concat([filter_label_ori,filter_label_op],axis=1)
+    filter_label = tf.concat([filter_label,filter_label_op],axis=1)
 
-    filter_pred = tf.nn.softmax(filter_pred) 
-    precloss = -(filter_label*tf.log(filter_pred+1e-10))
-    # precloss = tf.nn.softmax_cross_entropy_with_logits(logits=filter_pred,labels=filter_label)
+    precloss = tf.nn.softmax_cross_entropy_with_logits(logits=filter_pred,labels=filter_label)
     _cls_loss = tf.reduce_mean(precloss)
-
-    #----------------->accuracy
-    max_idx_l = tf.argmax(filter_pred,1)
-    max_idx_p = tf.argmax(filter_label,1)
-
-    correct_pred = tf.equal(max_idx_p, max_idx_l)
-    accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
     # --------------->bbx loss
     bbr_pred = tf.squeeze(bbx_pred)
@@ -166,10 +148,9 @@ def train():
 
     ratio = [1,0.5,0.5]
     loss = ratio[0]*_cls_loss+ratio[1]*_bbx_loss+ratio[2]*_landmark_loss
-    # loss = ratio[1]*_bbx_loss+ratio[2]*_landmark_loss
 
     global_step = tf.Variable(0,trainable=False)
-    starter_learning_rate = 0.001
+    starter_learning_rate = 0.01
     learning_rate = tf.train.exponential_decay(starter_learning_rate,global_step,4000,0.1,staircase=True)
 
     optimizer = tf.train.MomentumOptimizer(learning_rate,0.9).minimize(loss,global_step=global_step)
@@ -184,20 +165,17 @@ def train():
         threads = tf.train.start_queue_runners(coord=coord)
 
         # 用10000批数据训练,每一批50张图片
-        for batch_idx in range(10000):
+        for batch_idx in range(1):
             bimg,blabel,bbbx,blandmark = sess.run([batch_images,batch_labels,batch_bbxs,batch_landmarks])
 
             # fp,fl = sess.run([filter_pred,filter_label],feed_dict={IMG:bimg,CLS:blabel,BBX:bbbx,LANDMARK:blandmark})
             # print(fp)
             # print(fl)
 
-            # prec,preb,prel,ml,mp,acc = sess.run([filter_pred,filter_label,precloss,max_idx_l,max_idx_p,accuracy],feed_dict={IMG:bimg,CLS:blabel,BBX:bbbx,LANDMARK:blandmark})
-            # print(prec)
-            # print(preb)
-            # print(prel)
-            # print(ml)
-            # print(mp)
-            # print(acc)
+            prec,preb,prel = sess.run([filter_pred,filter_label,precloss],feed_dict={IMG:bimg,CLS:blabel,BBX:bbbx,LANDMARK:blandmark})
+            print(prec)
+            print(preb)
+            print(prel)
 
             # prec,preb,prel = sess.run([precloss,prebloss,prelloss],feed_dict={IMG:bimg,CLS:blabel,BBX:bbbx,LANDMARK:blandmark})
             # print(prec)
@@ -207,19 +185,10 @@ def train():
             # for i in range(len(blabel)):
                 # print("%d, %r, %r"%(blabel[i],bbbx[i],blandmark[i]))
 
-            _,vloss,vcloss,vbloss,vlloss,acc = sess.run([optimizer,loss, _cls_loss,_bbx_loss,_landmark_loss,accuracy],feed_dict={"IMG:0":bimg,"CLS:0":blabel,"BBX:0":bbbx,"LANDMARK:0":blandmark})
-            fcpred = tf.nn.softmax(fcls_pred)
-            pc,pb,pl = sess.run([fcpred,bbr_pred,landmark_pred],feed_dict={IMG:bimg,CLS:blabel,BBX:bbbx,LANDMARK:blandmark})
-            # if batch_idx % 5 == 0:
-            print("训练批次：%d,准确率:%f,分类loss:%f,BBX loss:%f,landmark loss:%f,total loss：%f"%(batch_idx,acc,vcloss,vbloss,vlloss,vloss))
+            _,vloss,vcloss,vbloss,vlloss = sess.run([optimizer,loss, _cls_loss,_bbx_loss,_landmark_loss],feed_dict={"IMG:0":bimg,"CLS:0":blabel,"BBX:0":bbbx,"LANDMARK:0":blandmark})
 
-            # print(pc)
-            # print("-------------------->")
-            # print(blabel)
-
-            if math.isnan(vloss):
-                break
-
+            if batch_idx % 25 == 0:
+                print("训练批次：%d,分类loss:%f,BBX loss:%f,landmark loss:%f,total loss：%f"%(batch_idx,vcloss,vbloss,vlloss,vloss))
 
             # _,vloss,vcpred,vbpred,vlpred = sess.run([optimizer,loss, cls_pred,bbx_pred,land_pred],feed_dict={IMG:bimg,CLS:blabel,BBX:bbbx,LANDMARK:blandmark})
 

@@ -11,7 +11,7 @@ def format_data_file():
     将检测人脸的txt文件格式化
     """
     content = ""
-    with open(cfg.PNET_ORIFINAL_TXT_PATH,"r") as f:
+    with open(cfg.ORIFINAL_TXT_PATH,"r") as f:
        content = f.read()
 
     content_list = content.split("\n")
@@ -150,7 +150,7 @@ def landmark_data():
     flandmark = open(cfg.PNET_TRAIN_LANDMARK_TXT_PATH,"w")
 
     landmark_annotations = ""
-    with open(cfg.PNET_ORIGINAL_LANDMARK_TXT_PATH,"r") as f:
+    with open(cfg.ORIGINAL_LANDMARK_TXT_PATH,"r") as f:
         landmark_annotations = f.readlines()
 
     flag = 0
@@ -163,7 +163,7 @@ def landmark_data():
         # ma = "net_7876\\111_0_0.jpg 38 236 94 292 91.000000 149.000000 196.000000 141.000000 174.000000 206.000000 115.000000 262.000000 198.000000 256.000000"
         ma = ma.strip().split(" ")
 
-        img_path = cfg.PNET_ORIGINAL_LANDMARK_IMG_PATH+ma[0].replace("\\","/")
+        img_path = cfg.ORIGINAL_LANDMARK_IMG_PATH+ma[0].replace("\\","/")
         bbx = list(map(int,ma[1:5]))
         landmark = list(map(float,ma[5:]))
         img = cv2.imread(img_path,cv2.IMREAD_COLOR)
@@ -217,7 +217,7 @@ def detection_data():
 
         ia = ia.strip().split(" ")
         #图像路径
-        img_path = cfg.PNET_ORIGINAL_IMG_PATH + ia[0]
+        img_path = cfg.ORIGINAL_IMG_PATH + ia[0]
         print(img_path)
         #gt框
         bbxs = list(map(float,ia[1:]))
@@ -320,6 +320,6 @@ def detection_data():
     fpos.close()
 
 if __name__ == "__main__":
-    detection_data()
-    # landmark_data()
+    # detection_data()
+    landmark_data()
 
