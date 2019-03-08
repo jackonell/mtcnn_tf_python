@@ -81,8 +81,8 @@ def calc_real_coordinate(ratio,bbox,cls):
            x = centerx - field/2
            y = centery - field/2
 
-           #得分大于0.5，判为正例,优化输出框
-           if cls[i,j,0] >= 0.3:
+           #得分大于0.5，则为候选框
+           if cls[i,j,0] >= 0.5:
                x = x+bbox[i,j,0]
                y = y+bbox[i,j,1]
                w = field+bbox[i,j,2]
@@ -95,7 +95,10 @@ def calc_real_coordinate(ratio,bbox,cls):
 
 def produce_rnet_detection_train_dataset():
     """
-    产生用于训练rnet的detection数据集
+    产生用于训练rnet的detection数据集:
+    注意到大量的neg,少量的par以及极少的pos,那么如何保证3:1:1:2的数据量呢？
+    得分大于0.5，则为候选框
+    只对neg部分进行nms
     """
     fneg = open(cfg.RNET_TRAIN_NEG_TXT_PATH,"w")
     fpos = open(cfg.RNET_TRAIN_POS_TXT_PATH,"w")
@@ -112,11 +115,12 @@ def produce_rnet_detection_train_dataset():
 
     detector = Detector()
     flag = 0
+    total_num = len(data)
 
     for line in data:
         # if flag > 0:
             # break
-        # flag = flag + 1
+        flag = flag + 1
 
         annotations = line.strip().split()
         img_path = cfg.ORIGINAL_IMG_PATH+annotations[0]
@@ -126,8 +130,7 @@ def produce_rnet_detection_train_dataset():
         true_boxes = list(map(float,annotations[1:]))
         true_boxes = np.array(true_boxes,dtype="float32").reshape(-1,4)
 
-        width = img.shape[1]
-        height = img.shape[0]
+        height,width,_ = img.shape
 
         ratio = 1
         #临时存放每张图片上产生的所有输出框
@@ -145,9 +148,12 @@ def produce_rnet_detection_train_dataset():
 
             img = cv2.resize(img,(int(width),int(height)))
 
+        if len(boxes_cls_temp) == 0:
+            continue
+
         boxes_cls_temp = np.array(boxes_cls_temp)
-        remain = NMS(boxes_cls_temp[:,:4],boxes_cls_temp[:,4],0.5)
-        boxes_cls_temp = boxes_cls_temp[remain]
+        # remain = NMS(boxes_cls_temp[:,:4],boxes_cls_temp[:,4],0.5)
+        # boxes_cls_temp = boxes_cls_temp[remain]
 
         # 查看图片
         # img0 = cv2.imread(img_path,cv2.IMREAD_COLOR)
@@ -160,8 +166,8 @@ def produce_rnet_detection_train_dataset():
         np.random.shuffle(boxes_cls_temp)
         # 对剩余的框，为其打标签，pos,par,neg,并产生用于训练的图片
         neg_temp = 0
+        par_temp = 0
         for box in boxes_cls_temp:
-            score = int(box[-1]*100)
             box = box[:-1]
             x,y,w,h = box
 
@@ -171,7 +177,9 @@ def produce_rnet_detection_train_dataset():
 
             iou = IOU(box,true_boxes)
             max_idx = np.argmax(iou)
+            miou = np.max(iou)
 
+            # if miou >= 0.4:
             tx,ty,tw,th = true_boxes[max_idx]
 
             offset_x = (tx-x)/w
@@ -185,104 +193,105 @@ def produce_rnet_detection_train_dataset():
             resized_img = cv2.resize(crop_img,(24,24))
 
             #注意预测的图片不是方形
-            if np.max(iou) >= 0.65: #pos
-                cv2.imwrite(cfg.RNET_TRAIN_IMG_PATH+"pos_"+str(score)+"_"+str(num_pos)+".jpg",resized_img)
-                fpos.write("pos_%s_%s.jpg 1 %f %f %f %f\n"%(score,num_pos,offset_x,offset_y,offset_w,offset_h))
+            if miou >= 0.65: #pos
+                cv2.imwrite("%spos_%d.jpg"%(cfg.RNET_TRAIN_IMG_PATH,num_pos),resized_img)
+                fpos.write("pos_%d.jpg 1 %f %f %f %f\n"%(num_pos,offset_x,offset_y,offset_w,offset_h))
                 num_pos = num_pos+1
-            elif np.max(iou) >= 0.4:
-                cv2.imwrite(cfg.RNET_TRAIN_IMG_PATH+"par_"+str(score)+"_"+str(num_par)+".jpg",resized_img)
-                fpar.write("par_%s_%s.jpg 0 %f %f %f %f\n"%(score,num_par,offset_x,offset_y,offset_w,offset_h))
+            elif miou >= 0.4 and par_temp < 100:
+                cv2.imwrite("%spar_%d.jpg"%(cfg.RNET_TRAIN_IMG_PATH,num_par),resized_img)
+                fpar.write("par_%d.jpg 0 %f %f %f %f\n"%(num_par,offset_x,offset_y,offset_w,offset_h))
                 num_par = num_par+1
-            elif np.max(iou) <= 0.3 and neg_temp < 80:
-                cv2.imwrite(cfg.RNET_TRAIN_IMG_PATH+"neg_"+str(score)+"_"+str(num_neg)+".jpg",resized_img)
-                fneg.write("neg_%s_%s.jpg -1 %f %f %f %f\n"%(score,num_neg,offset_x,offset_y,offset_w,offset_h))
+                par_temp = par_temp+1
+            elif miou <= 0.3 and neg_temp < 80:
+                cv2.imwrite("%sneg_%d.jpg"%(cfg.RNET_TRAIN_IMG_PATH,num_neg),resized_img)
+                fneg.write("neg_%d.jpg -1"%(num_neg))
                 num_neg = num_neg+1
                 neg_temp = neg_temp+1
 
         num = num_neg+num_par+num_pos
-        print("一共产生图片%d张：neg-%d张，par-%d张，pos-%d张"%(num,num_neg,num_par,num_pos))
-        # if num_neg > 750000 and num_par > 250000 and num_pos > 250000:
-            # break
+        print("共需处理图片%d张，已经处理%d张，产生图片%d张：neg-%d张，par-%d张，pos-%d张"%(total_num,flag,num,num_neg,num_par,num_pos))
+        if num_neg > 750000 and num_par > 250000 and num_pos > 250000:
+            break
 
     fneg.close()
     fpar.close()
     fpos.close()
 
-# def produce_rnet_landmark_train_dataset():
-    # """
-    # 产生用于训练rnet的landmark数据
-    # """
-    # flandmark = open(cfg.RNET_TRAIN_LANDMARK_TXT_PATH,"w")
+def produce_rnet_landmark_train_dataset():
+    """
+    产生用于训练rnet的landmark数据
+    """
+    flandmark = open(cfg.RNET_TRAIN_LANDMARK_TXT_PATH,"w")
 
-    # with open(cfg.ORIGINAL_LANDMARK_TXT_PATH,"r") as f:
-        # landmark_annotations = f.readlines()
+    with open(cfg.ORIGINAL_LANDMARK_TXT_PATH,"r") as f:
+        landmark_annotations = f.readlines()
 
-    # detector = detector()
-    # num_landmark = 1
+    detector = detector()
+    num_landmark = 1
 
-    # for ma in landmark_annotations:
-        # ma = ma.strip().split()
+    for ma in landmark_annotations:
+        ma = ma.strip().split()
 
-        # img_path = cfg.ORIGINAL_LANDMARK_IMG_PATH+ma[0].replace("\\","/")
-        # bbx = list(map(int,ma[1:5]))
-        # landmark = list(map(float,ma[5:]))
-        # img = cv2.imread(img_path,cv2.IMREAD_COLOR)
+        img_path = cfg.ORIGINAL_LANDMARK_IMG_PATH+ma[0].replace("\\","/")
+        bbx = list(map(int,ma[1:5]))
+        landmark = list(map(float,ma[5:]))
+        img = cv2.imread(img_path,cv2.IMREAD_COLOR)
 
-        # width = img.shape[0]
-        # height = img.shape[1]
+        width = img.shape[0]
+        height = img.shape[1]
 
-        # bbx = np.array(bbx).reshape((-1,2))
-        # w,h = bbx[:,1]-bbx[:,0]
-        # x,y = bbx[:,0]
+        bbx = np.array(bbx).reshape((-1,2))
+        w,h = bbx[:,1]-bbx[:,0]
+        x,y = bbx[:,0]
 
-        # landmark = np.array(landmark).reshape((-1,2))
+        landmark = np.array(landmark).reshape((-1,2))
 
-        # ratio = 0.79
+        ratio = 0.79
 
-        # while width > 24 and height > 24:
-            # cls,bbr,_ = detector.predict(img)
+        while width > 24 and height > 24:
+            cls,bbr,_ = detector.predict(img)
 
-            # #计算出预测正例的真实坐标值
-            # keep_boxes = calc_real_coordinate(ratio,bbr,cls)
-            # boxes_cls_temp.extend(keep_boxes)
+            #计算出预测正例的真实坐标值
+            keep_boxes = calc_real_coordinate(ratio,bbr,cls)
+            boxes_cls_temp.extend(keep_boxes)
 
-            # ratio  = ratio*0.79
-            # width  = width*0.79
-            # height = height*0.79
+            ratio  = ratio*0.79
+            width  = width*0.79
+            height = height*0.79
 
-        # remain = nms(boxes_cls_temp[:,:4],boxes_cls_temp[4],0.5)
-        # #对剩余的框，为pos框，记录landmark
-        # for i in range(len(remain)):
-            # box = remain[i]
-            # rx,ry,rw,rh = box
+        remain = nms(boxes_cls_temp[:,:4],boxes_cls_temp[4],0.5)
+        #对剩余的框，为pos框，记录landmark
+        for i in range(len(remain)):
+            box = remain[i]
+            rx,ry,rw,rh = box
 
-            # if rw < 24 or rh < 24 or rx < 0 or ry < 0:
-                # continue
+            if rw < 24 or rh < 24 or rx < 0 or ry < 0:
+                continue
 
-            # bbx = np.array([x,y,w,h])
-            # iou = IOU(np.array(box,bbx.reshap((-1,4)))
+            bbx = np.array([x,y,w,h])
+            iou = IOU(np.array(box,bbx.reshap((-1,4)))
 
-            # #如果是正例，则计算landmark
-            # if np.max(iou) >= 0.65:
-                # #归一化特征点
-                # landmark[:,0] = (landmark[:,0]-rx)/rw
-                # landmark[:,1] = (landmark[:,1]-ry)/rh
+            #如果是正例，则计算landmark
+            if np.max(iou) >= 0.65:
+                #归一化特征点
+                landmark[:,0] = (landmark[:,0]-rx)/rw
+                landmark[:,1] = (landmark[:,1]-ry)/rh
 
-                # crop_img = img[ry:ry+rh,rx:rx+rw]
-                # resized_img = cv2.resize(crop_img,(24,24))
+                crop_img = img[ry:ry+rh,rx:rx+rw]
+                resized_img = cv2.resize(crop_img,(24,24))
 
-                # resized_img = cv2.resize(crop_img,(12,12))
-                # cv2.imwrite(cfg.PNET_TRAIN_IMG_PATH+"landmark_"+str(num_landmark)+".jpg",resized_img)
-                # landmark = landmark.reshape((-1))
-                # landmark = list(map(str,landmark))
-                # flandmark.write("landmark_%s.jpg 2 %s\n"%(num_landmark," ".join(landmark)))
-                # num_landmark = num_landmark+1
+                resized_img = cv2.resize(crop_img,(12,12))
+                cv2.imwrite(cfg.PNET_TRAIN_IMG_PATH+"landmark_"+str(num_landmark)+".jpg",resized_img)
+                landmark = landmark.reshape((-1))
+                landmark = list(map(str,landmark))
+                flandmark.write("landmark_%s.jpg 2 %s\n"%(num_landmark," ".join(landmark)))
+                num_landmark = num_landmark+1
 
-        # print("一共产生landmark图片%d张"%(num_landmark-1))
+        print("一共产生landmark图片%d张"%(num_landmark-1))
 
-    # flandmark.close()
+    flandmark.close()
 
 if __name__ == "__main__":
-    produce_rnet_detection_train_dataset()
-    # produce_rnet_landmark_train_dataset()
+    # produce_rnet_detection_train_dataset()
+    produce_rnet_landmark_train_dataset()
 
