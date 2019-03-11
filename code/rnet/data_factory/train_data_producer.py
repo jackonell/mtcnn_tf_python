@@ -203,7 +203,7 @@ def produce_rnet_detection_train_dataset():
                 num_par = num_par+1
                 par_temp = par_temp+1
             elif miou <= 0.3 and neg_temp < 80:
-                cv2.imwrite("%sneg_%d.jpg"%(cfg.RNET_TRAIN_IMG_PATH,num_neg),resized_img)
+                cv2.imwrite("%sneg_%d.jpg\n"%(cfg.RNET_TRAIN_IMG_PATH,num_neg),resized_img)
                 fneg.write("neg_%d.jpg -1"%(num_neg))
                 num_neg = num_neg+1
                 neg_temp = neg_temp+1
@@ -226,10 +226,18 @@ def produce_rnet_landmark_train_dataset():
     with open(cfg.ORIGINAL_LANDMARK_TXT_PATH,"r") as f:
         landmark_annotations = f.readlines()
 
-    detector = detector()
-    num_landmark = 1
+    detector = Detector()
+    num_landmark = 0
+
+    resize_ratio = 0.79
+    total_num = len(landmark_annotations)
+    flag = 0
 
     for ma in landmark_annotations:
+        # if flag > 0:
+            # break
+        flag = flag + 1
+
         ma = ma.strip().split()
 
         img_path = cfg.ORIGINAL_LANDMARK_IMG_PATH+ma[0].replace("\\","/")
@@ -237,17 +245,18 @@ def produce_rnet_landmark_train_dataset():
         landmark = list(map(float,ma[5:]))
         img = cv2.imread(img_path,cv2.IMREAD_COLOR)
 
-        width = img.shape[0]
-        height = img.shape[1]
+        height,width,_ = img.shape
 
         bbx = np.array(bbx).reshape((-1,2))
         w,h = bbx[:,1]-bbx[:,0]
         x,y = bbx[:,0]
 
+        true_boxes = np.array([x,y,w,h],dtype="float32").reshape(-1,4)
+
         landmark = np.array(landmark).reshape((-1,2))
 
-        ratio = 0.79
-
+        ratio = 1
+        boxes_cls_temp = []
         while width > 24 and height > 24:
             cls,bbr,_ = detector.predict(img)
 
@@ -255,39 +264,61 @@ def produce_rnet_landmark_train_dataset():
             keep_boxes = calc_real_coordinate(ratio,bbr,cls)
             boxes_cls_temp.extend(keep_boxes)
 
-            ratio  = ratio*0.79
-            width  = width*0.79
-            height = height*0.79
+            ratio  = ratio*resize_ratio
+            width  = width*resize_ratio
+            height = height*resize_ratio
 
-        remain = nms(boxes_cls_temp[:,:4],boxes_cls_temp[4],0.5)
+            img = cv2.resize(img,(int(width),int(height)))
+
+        if len(boxes_cls_temp) == 0:
+            continue
+
+        boxes_cls_temp = np.array(boxes_cls_temp)
+        # remain = NMS(boxes_cls_temp[:,:4],boxes_cls_temp[:,4],0.5)
+        # boxes_cls_temp = boxes_cls_temp[remain]
+
+        img = cv2.imread(img_path,cv2.IMREAD_COLOR)
+        height,width,_ = img.shape
         #对剩余的框，为pos框，记录landmark
-        for i in range(len(remain)):
-            box = remain[i]
+        for box in boxes_cls_temp:
+            box = box[:-1]
             rx,ry,rw,rh = box
 
             if rw < 24 or rh < 24 or rx < 0 or ry < 0:
                 continue
 
-            bbx = np.array([x,y,w,h])
-            iou = IOU(np.array(box,bbx.reshap((-1,4)))
+            iou = IOU(box,true_boxes)
+            miou = np.max(iou)
+            is_flip = 0
 
             #如果是正例，则计算landmark
-            if np.max(iou) >= 0.65:
+            while miou >= 0.65 and is_flip < 2:
                 #归一化特征点
-                landmark[:,0] = (landmark[:,0]-rx)/rw
-                landmark[:,1] = (landmark[:,1]-ry)/rh
+                landmark_temp = np.zeros_like(landmark)
 
+                if is_flip == 1:
+                    img = cv2.flip(img,1)
+                    box[0] = width-rx-rw
+                    landmark[:,0] = width-landmark[:,0]
+
+                # print("%r %r %r %r"%(is_flip,img.shape,box,width))
+                is_flip = is_flip+1
+
+                landmark_temp[:,0] = (landmark[:,0]-rx)/rw
+                landmark_temp[:,1] = (landmark[:,1]-ry)/rh
+
+                box = list(map(int,box))
+                rx,ry,rw,rh = box
                 crop_img = img[ry:ry+rh,rx:rx+rw]
                 resized_img = cv2.resize(crop_img,(24,24))
 
-                resized_img = cv2.resize(crop_img,(12,12))
-                cv2.imwrite(cfg.PNET_TRAIN_IMG_PATH+"landmark_"+str(num_landmark)+".jpg",resized_img)
-                landmark = landmark.reshape((-1))
-                landmark = list(map(str,landmark))
-                flandmark.write("landmark_%s.jpg 2 %s\n"%(num_landmark," ".join(landmark)))
+                cv2.imwrite("%slandmark_%d.jpg"%(cfg.RNET_TRAIN_IMG_PATH,num_landmark),resized_img)
+                landmark_temp = landmark_temp.reshape((-1))
+                landmark_temp = list(map(str,landmark_temp))
+                flandmark.write("landmark_%s.jpg 2 %s\n"%(num_landmark," ".join(landmark_temp)))
                 num_landmark = num_landmark+1
 
-        print("一共产生landmark图片%d张"%(num_landmark-1))
+        print("共需处理图片%d张，已经处理%d张，产生landmark图片%d张"%(total_num,flag,num_landmark))
 
     flandmark.close()
 

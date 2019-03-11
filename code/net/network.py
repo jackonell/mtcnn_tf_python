@@ -36,7 +36,7 @@ class cnnbox:
             return cf
 
     # @logtf
-    def max_pool2d(self, pre_layer, name, stride=[1,2,2,1], filter_size=[1,2,2,1], padding='SAME'):
+    def max_pool2d(self, pre_layer, name, stride=[1,2,2,1], filter_size=[1,2,2,1], padding='VALID'):
         with tf.variable_scope(name):
             maxp = tf.nn.max_pool(pre_layer,ksize=filter_size,strides=stride,padding=padding)
             return maxp

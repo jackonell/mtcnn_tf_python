@@ -2,4 +2,6 @@ data
 code/__pycache__/
 code/pnet/net/__pycache__/
 code/pnet/train/__pycache__/
+code/net/__pycache__/
+code/rnet/train/__pycache__/
 code/tags

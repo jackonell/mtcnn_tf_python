@@ -2,7 +2,7 @@ import tensorflow as tf
 import sys, os
 #注意到相当于将当前脚本移到code目录下执行
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
-from pnet.net.network import cnnbox
+from net.network import cnnbox
 
 
 def PNet(input):
@@ -30,15 +30,24 @@ def RNet(input):
     cb = cnnbox()
 
     rnet = cb.conv2d(input,"conv1",3,28,activation_fn=cb.prelu)
-    rnet = cb.max_pool2d(rnet,"pool1",filter_size=[1,3,3,1])
+    print(rnet.get_shape())
+    rnet = cb.max_pool2d(rnet,"pool1")
+    print(rnet.get_shape())
     rnet = cb.conv2d(rnet,"conv2",28,48,activation_fn=cb.prelu)
-    rnet = cb.max_pool2d(rnet,"pool2",filter_size=[1,3,3,1],activation_fn=cb.prelu)
+    print(rnet.get_shape())
+    rnet = cb.max_pool2d(rnet,"pool2")
+    print(rnet.get_shape())
     rnet = cb.conv2d(rnet,"conv3",48,64,filter_size=[2,2],activation_fn=cb.prelu)
+    print(rnet.get_shape())
     rnet = cb.fc(rnet,"fc1",64,128,activation_fn=cb.prelu)
+    print(rnet.get_shape())
 
     fcls_pred     = cb.fc(rnet,"fc2_1",128,2,activation_fn=None)
+    print(fcls_pred.get_shape())
     bbr_pred      = cb.fc(rnet,"fc2_2",128,4,activation_fn=None)
+    print(bbr_pred.get_shape())
     landmark_pred = cb.fc(rnet,"fc2_3",128,10,activation_fn=None)
+    print(landmark_pred.get_shape())
 
     return fcls_pred,bbr_pred,landmark_pred
 

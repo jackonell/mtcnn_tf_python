@@ -33,6 +33,6 @@ cfg.RNET_TRAIN_PART_TXT_PATH     = "../data/rdata/train_part.txt"
 cfg.RNET_TRAIN_LANDMARK_TXT_PATH = "../data/rdata/train_landmark.txt"
 cfg.RNET_TRAIN_IMG_PATH          = "../data/rdata/images/"
 cfg.RNET_TRAIN_TFRECORDS         = "../data/rdata/train.tfrecords"
-cfg.RNET_MODEL_PATH              = "../data/rdata/models"
+cfg.RNET_MODEL_PATH              = "../data/rdata/models/"
 
 
