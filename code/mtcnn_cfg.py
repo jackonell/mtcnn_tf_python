@@ -2,7 +2,7 @@ from easydict import EasyDict as edict
 
 cfg = edict()
 
-cfg.BATCH_SIZE = 256
+cfg.BATCH_SIZE = 224
 
 #原始数据集中的索引与标签文件
 cfg.ORIGINAL_TXT_PATH          = "../data/origin/wider_face_split/wider_face_train_bbx_gt.txt"
@@ -32,7 +32,7 @@ cfg.RNET_TRAIN_POS_TXT_PATH      = "../data/rdata/train_pos.txt"
 cfg.RNET_TRAIN_PART_TXT_PATH     = "../data/rdata/train_part.txt"
 cfg.RNET_TRAIN_LANDMARK_TXT_PATH = "../data/rdata/train_landmark.txt"
 cfg.RNET_TRAIN_IMG_PATH          = "../data/rdata/images/"
-cfg.RNET_TRAIN_TFRECORDS         = "../data/rdata/train.tfrecords"
+cfg.RNET_TRAIN_TFRECORDS         = "../data/rdata/train_%s.tfrecords"
 cfg.RNET_MODEL_PATH              = "../data/rdata/models/"
 
 

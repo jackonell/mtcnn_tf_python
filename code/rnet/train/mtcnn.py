@@ -39,7 +39,7 @@ def RNet(input):
     print(rnet.get_shape())
     rnet = cb.conv2d(rnet,"conv3",48,64,filter_size=[2,2],activation_fn=cb.prelu)
     print(rnet.get_shape())
-    rnet = cb.fc(rnet,"fc1",64,128,activation_fn=cb.prelu)
+    rnet = cb.fc(rnet,"fc1",576,128,activation_fn=cb.prelu)
     print(rnet.get_shape())
 
     fcls_pred     = cb.fc(rnet,"fc2_1",128,2,activation_fn=None)

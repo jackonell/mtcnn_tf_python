@@ -13,11 +13,13 @@ def cls_loss_and_acc(pred,label):
     """
     pred = tf.squeeze(pred)
 
-    keeps = tf.where(tf.logical_or(tf.equal(label,1),tf.equal(label,-1)))
+    # keeps = tf.where(tf.logical_or(tf.equal(label,1),tf.equal(label,-1)))
+    keeps = tf.where(tf.logical_or(tf.equal(label,1),tf.equal(label,0)))
     filter_pred = tf.squeeze(tf.gather(pred,keeps))
     filter_label = tf.gather(label,keeps)
 
-    filter_label_ori = tf.where(tf.equal(filter_label,1),filter_label,1+filter_label) #要修改
+    # filter_label_ori = tf.where(tf.equal(filter_label,1),filter_label,1+filter_label) #要修改
+    filter_label_ori = filter_label
     filter_label_op = tf.where(tf.equal(filter_label_ori,1),1-filter_label_ori,1-filter_label_ori) #要修改
 
     filter_label_n = tf.concat([filter_label_ori,filter_label_op],axis=1)
@@ -64,7 +66,8 @@ def bbx_loss(pred_bbx,bbx,label):
     """
     pred_bbx = tf.squeeze(pred_bbx)
 
-    keeps = tf.where(tf.logical_or(tf.equal(label,1),tf.equal(label,0)))
+    # keeps = tf.where(tf.logical_or(tf.equal(label,1),tf.equal(label,0)))
+    keeps = tf.where(tf.logical_or(tf.equal(label,1),tf.equal(label,-1)))
     filter_pred_bbx = tf.gather(pred_bbx,keeps)
     filter_bbx = tf.gather(bbx,keeps)
 
@@ -80,7 +83,8 @@ def landmark_loss(pred_landmark,landmark,label):
     """
     pred_landmark = tf.squeeze(pred_landmark)
 
-    keeps = tf.where(tf.equal(label,2))
+    # keeps = tf.where(tf.equal(label,2))
+    keeps = tf.where(tf.equal(label,-2))
     filter_pred_landmark = tf.gather(pred_landmark,keeps)
     filter_landmark = tf.gather(landmark,keeps)
 
@@ -103,10 +107,10 @@ def read_batch_data_from_tfrecord(data_path,batch_size_s):
     从tfrecord中读取数据
     """
     batch_size_s = int(batch_size_s) 
-    feature = {'sample/image': tf.FixedLenFeature([],tf.string),
-            'sample/label': tf.FixedLenFeature([],tf.int64),
-            'sample/bbx': tf.FixedLenFeature([4],tf.float32),
-            'sample/landmark': tf.FixedLenFeature([10],tf.float32)}
+    feature = {'image/encoded': tf.FixedLenFeature([],tf.string),
+            'image/label': tf.FixedLenFeature([],tf.int64),
+            'image/roi': tf.FixedLenFeature([4],tf.float32),
+            'image/landmark': tf.FixedLenFeature([10],tf.float32)}
 
     filename_queue = tf.train.string_input_producer([data_path],shuffle=True)
 
@@ -116,10 +120,10 @@ def read_batch_data_from_tfrecord(data_path,batch_size_s):
 
     features = tf.parse_single_example(serialized_example,features=feature)
 
-    image    = tf.decode_raw(features['sample/image'],tf.uint8)
-    label    = tf.cast(features['sample/label'],tf.int32)
-    bbx      = tf.cast(features['sample/bbx'],tf.float32)
-    landmark = tf.cast(features['sample/landmark'],tf.float32)
+    image    = tf.decode_raw(features['image/encoded'],tf.uint8)
+    label    = tf.cast(features['image/label'],tf.int32)
+    bbx      = tf.cast(features['image/roi'],tf.float32)
+    landmark = tf.cast(features['image/landmark'],tf.float32)
 
     image = tf.reshape(image,[24,24,3])
     image = image_color_distort(image)
@@ -190,7 +194,6 @@ def train():
         # 用10000批数据训练,每一批256张图片
         for batch_idx in range(120000):
             bimg,blabel,bbbx,blandmark = sess.run([batch_images,batch_labels,batch_bbxs,batch_landmarks])
-
 
             _,vloss,vcloss,vbloss,vlloss,lr,gstep,acc,fpred,flabel = sess.run([optimizer,loss, _cls_loss,_bbx_loss,_landmark_loss,learning_rate,global_step,accuracy,filter_pred,filter_label],feed_dict={"IMG:0":bimg,"CLS:0":blabel,"BBX:0":bbbx,"LANDMARK:0":blandmark})
 

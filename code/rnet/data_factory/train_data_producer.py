@@ -7,6 +7,7 @@ import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
 from mtcnn_cfg import cfg
 from mtcnn_utils import IOU
+from mtcnn_utils import dataAugmentation
 from mtcnn_utils import NMS
 from net.mtcnn import PNet
 
@@ -18,12 +19,7 @@ class Detector(object):
         graph = tf.Graph()
         with graph.as_default():
 
-            # IMG = tf.placeholder(tf.float32,name="IMG")
-            # WIDTH = tf.placeholder(tf.int32,name="WIDTH")
-            # HEIGHT = tf.placeholder(tf.int32,name="HEIGHT")
-
-            # img = tf.reshape(IMG,[1,HEIGHT,WIDTH,3])
-            img = tf.placeholder(tf.float32,shape=[None,None,None,3],name="IMG") #是否有更简单的方式实现输入不同大小的图片
+            img = tf.placeholder(tf.float32,shape=[None,None,None,3],name="IMG")
             img = (tf.cast(img,tf.float32)-127.5)/128
 
             self.fcls_pred,self.bbr_pred,self.landmark_pred = PNet(img)
@@ -81,15 +77,15 @@ def calc_real_coordinate(ratio,bbox,cls):
            x = centerx - field/2
            y = centery - field/2
 
-           #得分大于0.5，则为候选框
-           if cls[i,j,0] >= 0.5:
+           #得分大于0.3，则为候选框
+           if cls[i,j,0] >= 0.3:
                x = x+bbox[i,j,0]
                y = y+bbox[i,j,1]
                w = field+bbox[i,j,2]
                h = field+bbox[i,j,3]
+
                if w > 24 and h > 24:
                    remain.append([x,y,w,h,cls[i,j,0]])
-               # remain.append([x,y,field,field,cls[i,j,0]])
 
     return remain
 
@@ -118,7 +114,7 @@ def produce_rnet_detection_train_dataset():
     total_num = len(data)
 
     for line in data:
-        # if flag > 0:
+        # if flag > 1000:
             # break
         flag = flag + 1
 
@@ -140,7 +136,14 @@ def produce_rnet_detection_train_dataset():
 
             #计算出预测正例的真实坐标值
             keep_boxes = calc_real_coordinate(ratio,bbr,cls)
-            boxes_cls_temp.extend(keep_boxes)
+
+            keep_boxes = np.array(keep_boxes)
+
+            if len(keep_boxes) != 0:
+                remaink = NMS(keep_boxes[:,:4],keep_boxes[:,4],0.5)
+                keep_boxes = keep_boxes[remaink]
+
+            boxes_cls_temp.extend(list(keep_boxes))
 
             ratio  = ratio*resize_ratio
             width  = width*resize_ratio
@@ -152,14 +155,15 @@ def produce_rnet_detection_train_dataset():
             continue
 
         boxes_cls_temp = np.array(boxes_cls_temp)
-        # remain = NMS(boxes_cls_temp[:,:4],boxes_cls_temp[:,4],0.5)
-        # boxes_cls_temp = boxes_cls_temp[remain]
+        remain = NMS(boxes_cls_temp[:,:4],boxes_cls_temp[:,4],0.7)
+        boxes_cls_temp = boxes_cls_temp[remain]
 
         # 查看图片
         # img0 = cv2.imread(img_path,cv2.IMREAD_COLOR)
         # for rec in boxes_cls_temp:
-            # rec = list(map(int,rec))
-            # cv2.rectangle(img0,(rec[0],rec[1]),(rec[0]+rec[2],rec[1]+rec[3]),(0,255,0),2)
+            # if rec[4] > 0.9:
+                # rec = list(map(int,rec))
+                # cv2.rectangle(img0,(rec[0],rec[1]),(rec[0]+rec[2],rec[1]+rec[3]),(0,255,0),2)
         # cv2.imwrite("%d.jpg"%flag,img0)
 
         img = cv2.imread(img_path,cv2.IMREAD_COLOR)
@@ -179,13 +183,24 @@ def produce_rnet_detection_train_dataset():
             max_idx = np.argmax(iou)
             miou = np.max(iou)
 
-            # if miou >= 0.4:
-            tx,ty,tw,th = true_boxes[max_idx]
+            tbox = true_boxes[max_idx]
 
+            tx,ty,tw,th = tbox
             offset_x = (tx-x)/w
             offset_y = (ty-y)/h
             offset_w = (tw-w)/w
             offset_h = (th-h)/h
+
+            # if miou >= 0.65:
+                # print(tbox)
+                # print(box)
+                # crop_img,_,bbx_regression = dataAugmentation(img,tbox,None,box,0,False)
+                # offset_x0,offset_y0 = bbx_regression[0]
+                # offset_w0,offset_h0 = bbx_regression[1]-bbx_regression[0]
+                # print("-------------->0")
+                # print(offset_x0,offset_y0,offset_w0,offset_h0)
+                # print(offset_x,offset_y,offset_w,offset_h)
+                # print("-------------->1")
 
             box = list(map(int,box))
             x,y,w,h = box
@@ -194,24 +209,40 @@ def produce_rnet_detection_train_dataset():
 
             #注意预测的图片不是方形
             if miou >= 0.65: #pos
-                cv2.imwrite("%spos_%d.jpg"%(cfg.RNET_TRAIN_IMG_PATH,num_pos),resized_img)
-                fpos.write("pos_%d.jpg 1 %f %f %f %f\n"%(num_pos,offset_x,offset_y,offset_w,offset_h))
-                num_pos = num_pos+1
-            elif miou >= 0.4 and par_temp < 100:
+                #由于正例的缺乏，通过翻转、旋转来进行数据增强
+                # for rotate_degree in np.arange(-10,15,5):
+                    # is_flip = np.random.choice([False,True])
+                for is_flip in [False,True]:
+                    crop_img,_,bbx_regression = dataAugmentation(img,tbox,None,box,0,is_flip)
+
+                    ch,cw,_ = np.shape(crop_img)
+
+                    if cw*ch == 0:
+                        continue
+
+                    resized_img = cv2.resize(crop_img,(24,24))
+
+                    offset_x,offset_y = bbx_regression[0]
+                    offset_w,offset_h = bbx_regression[1]-bbx_regression[0]
+
+                    cv2.imwrite("%spos_%d.jpg"%(cfg.RNET_TRAIN_IMG_PATH,num_pos),resized_img)
+                    fpos.write("pos_%d.jpg 1 %f %f %f %f\n"%(num_pos,offset_x,offset_y,offset_w,offset_h))
+                    num_pos = num_pos+1
+            elif miou >= 0.4:
                 cv2.imwrite("%spar_%d.jpg"%(cfg.RNET_TRAIN_IMG_PATH,num_par),resized_img)
                 fpar.write("par_%d.jpg 0 %f %f %f %f\n"%(num_par,offset_x,offset_y,offset_w,offset_h))
                 num_par = num_par+1
                 par_temp = par_temp+1
             elif miou <= 0.3 and neg_temp < 80:
-                cv2.imwrite("%sneg_%d.jpg\n"%(cfg.RNET_TRAIN_IMG_PATH,num_neg),resized_img)
-                fneg.write("neg_%d.jpg -1"%(num_neg))
+                cv2.imwrite("%sneg_%d.jpg"%(cfg.RNET_TRAIN_IMG_PATH,num_neg),resized_img)
+                fneg.write("neg_%d.jpg -1\n"%(num_neg))
                 num_neg = num_neg+1
                 neg_temp = neg_temp+1
 
         num = num_neg+num_par+num_pos
         print("共需处理图片%d张，已经处理%d张，产生图片%d张：neg-%d张，par-%d张，pos-%d张"%(total_num,flag,num,num_neg,num_par,num_pos))
-        if num_neg > 750000 and num_par > 250000 and num_pos > 250000:
-            break
+        # if num_neg > 750000 and num_par > 250000 and num_pos > 250000:
+            # break
 
     fneg.close()
     fpar.close()
@@ -234,7 +265,7 @@ def produce_rnet_landmark_train_dataset():
     flag = 0
 
     for ma in landmark_annotations:
-        # if flag > 0:
+        # if flag > 1000:
             # break
         flag = flag + 1
 
@@ -262,6 +293,12 @@ def produce_rnet_landmark_train_dataset():
 
             #计算出预测正例的真实坐标值
             keep_boxes = calc_real_coordinate(ratio,bbr,cls)
+
+            keep_boxes = np.array(keep_boxes)
+
+            if len(keep_boxes) != 0:
+                remaink = NMS(keep_boxes[:,:4],keep_boxes[:,4],0.5)
+                keep_boxes = keep_boxes[remaink]
             boxes_cls_temp.extend(keep_boxes)
 
             ratio  = ratio*resize_ratio
@@ -274,8 +311,16 @@ def produce_rnet_landmark_train_dataset():
             continue
 
         boxes_cls_temp = np.array(boxes_cls_temp)
-        # remain = NMS(boxes_cls_temp[:,:4],boxes_cls_temp[:,4],0.5)
-        # boxes_cls_temp = boxes_cls_temp[remain]
+        remain = NMS(boxes_cls_temp[:,:4],boxes_cls_temp[:,4],0.7)
+        boxes_cls_temp = boxes_cls_temp[remain]
+
+        # 查看图片
+        # img0 = cv2.imread(img_path,cv2.IMREAD_COLOR)
+        # for rec in boxes_cls_temp:
+            # if rec[4] > 0.98:
+                # rec = list(map(int,rec))
+                # cv2.rectangle(img0,(rec[0],rec[1]),(rec[0]+rec[2],rec[1]+rec[3]),(0,255,0),2)
+        # cv2.imwrite("%d.jpg"%flag,img0)
 
         img = cv2.imread(img_path,cv2.IMREAD_COLOR)
         height,width,_ = img.shape
@@ -289,40 +334,32 @@ def produce_rnet_landmark_train_dataset():
 
             iou = IOU(box,true_boxes)
             miou = np.max(iou)
-            is_flip = 0
 
             #如果是正例，则计算landmark
-            while miou >= 0.65 and is_flip < 2:
-                #归一化特征点
-                landmark_temp = np.zeros_like(landmark)
+            if miou >= 0.65:
+                for is_flip in np.array([False,True]):
+                    for rotate_degree in np.arange(-10,15,5):
+                        # is_flip = np.random.choice([False,True])
+                        crop_img,landmark_regression,_ = dataAugmentation(img,None,landmark,box,rotate_degree,is_flip)
 
-                if is_flip == 1:
-                    img = cv2.flip(img,1)
-                    box[0] = width-rx-rw
-                    landmark[:,0] = width-landmark[:,0]
+                        ch,cw,_ = np.shape(crop_img)
 
-                # print("%r %r %r %r"%(is_flip,img.shape,box,width))
-                is_flip = is_flip+1
+                        if cw*ch == 0:
+                            continue
 
-                landmark_temp[:,0] = (landmark[:,0]-rx)/rw
-                landmark_temp[:,1] = (landmark[:,1]-ry)/rh
+                        resized_img = cv2.resize(crop_img,(24,24))
 
-                box = list(map(int,box))
-                rx,ry,rw,rh = box
-                crop_img = img[ry:ry+rh,rx:rx+rw]
-                resized_img = cv2.resize(crop_img,(24,24))
-
-                cv2.imwrite("%slandmark_%d.jpg"%(cfg.RNET_TRAIN_IMG_PATH,num_landmark),resized_img)
-                landmark_temp = landmark_temp.reshape((-1))
-                landmark_temp = list(map(str,landmark_temp))
-                flandmark.write("landmark_%s.jpg 2 %s\n"%(num_landmark," ".join(landmark_temp)))
-                num_landmark = num_landmark+1
+                        cv2.imwrite("%slandmark_%d.jpg"%(cfg.RNET_TRAIN_IMG_PATH,num_landmark),resized_img)
+                        landmark_regression = landmark_regression.reshape((-1))
+                        landmark_regression = list(map(str,landmark_regression))
+                        flandmark.write("landmark_%s.jpg 2 %s\n"%(num_landmark," ".join(landmark_regression)))
+                        num_landmark = num_landmark+1
 
         print("共需处理图片%d张，已经处理%d张，产生landmark图片%d张"%(total_num,flag,num_landmark))
 
     flandmark.close()
 
 if __name__ == "__main__":
-    # produce_rnet_detection_train_dataset()
+    produce_rnet_detection_train_dataset()
     produce_rnet_landmark_train_dataset()
 
