@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-def dataAugmentation(img,gtbox,landmark,bbx,rotate,is_flip):
+def data_augmentation(img,gtbox,landmark,bbx,rotate,is_flip):
     """
     对图片进行旋转和翻转
 
@@ -44,8 +44,8 @@ def dataAugmentation(img,gtbox,landmark,bbx,rotate,is_flip):
         #归一化特征点
         landmark = (landmark-bbx[0])/(bbx[1]-bbx[0])
 
+        #绘制特征点
         # landmark = landmark*(bbx[1]-bbx[0])
-
         # for ma in landmark:
             # cv2.circle(crop_img,(int(ma[0]),int(ma[1])),3,(0,0,225),-1)
         # cv2.imwrite("1.jpg",crop_img)
@@ -91,7 +91,7 @@ def rotate_box(box,matrix):
     return bbx.reshape((-1,2))
 
 
-def NMS(bbxs,confidences,thresh):
+def nms(bbxs,confidences,thresh):
     """
     对计算出的框进行极大值抑制（重叠度过高的框进行删减）
     """
@@ -104,20 +104,17 @@ def NMS(bbxs,confidences,thresh):
         remain.append(cidx)
         bbx = bbxs[cidx]
         target = bbxs[order_idx[1:]]
-        iou = IOU(bbx,target)
+        ious = iou(bbx,target)
 
-        # print(order_idx)
-        # print(iou)
-        idxs = np.where(iou <= thresh)
+        idxs = np.where(ious <= thresh)
         idxs = np.array(idxs)[0]
-        # print(idxs+1)
         # 因为idxs是以原数组第二个位置为基准的坐标,所以要+1
         order_idx = order_idx[idxs+1]
 
     return remain
 
 
-def IOU(bbx,target):
+def iou(bbx,target):
     """
      计算IOU得分:
      (Area of Overlap)/(Area of Union)
@@ -144,6 +141,16 @@ def IOU(bbx,target):
     iou = inter_area/(bbx_area+target_area-inter_area)
 
     return iou
+
+def calc_receptive_filed():
+    """
+    计算感受野与第一个点坐标，jump等
+    """
+    field = 12
+    jump = 2
+    start = 6.0
+
+    return field,jump,start
 
 
 if __name__ == "__main__":
@@ -172,5 +179,5 @@ if __name__ == "__main__":
 
     box = box[[1,2]]
     box = list(box) 
-    print(type(box))
+    print(box)
 

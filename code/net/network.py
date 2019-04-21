@@ -9,21 +9,16 @@ def logtf(fn):
         layer = fn(*args,**kwargs)
         print(layer.get_shape())
         return layer
-
     return logsth
 
-class cnnbox:
-
-    def __init__(self,stdev=0.01):
-        self.stdev = stdev
+class CnnBox:
 
     @logtf
-    def conv2d(self, pre_layer, name ,out_channels, stride=[1,1,1,1], filter_size=[3,3], padding='VALID', activation_fn=None):
+    def conv2d(self, pre_layer, name , out_channels, stride=[1,1,1,1], filter_size=[3,3], padding='VALID', activation_fn=None):
         with tf.variable_scope(name):
-            N,H,W,C = tf.shape(pre_layer)
-            in_channels = C
-
+            in_channels = pre_layer.get_shape()[-1]
             w_c = tf.get_variable(shape=[filter_size[0],filter_size[1],in_channels,out_channels],initializer=tf.contrib.layers.xavier_initializer(),name="weight")
+
             b_c = tf.get_variable(shape=[out_channels],initializer=tf.contrib.layers.xavier_initializer(),name="bias")
 
             conv = tf.nn.conv2d(pre_layer,w_c,stride,padding=padding)
@@ -41,15 +36,14 @@ class cnnbox:
             return maxp
 
     @logtf
-    def fc(self,pre_layer,name,out_size, activation_fn=None):
+    def fc(self,pre_layer, name, out_size, activation_fn=None):
         with tf.variable_scope(name):
             pre_layer = tf.contrib.layers.flatten(pre_layer)
-            print(pre_layer.get_shape())
+            print("展开：%r"%pre_layer.get_shape())
 
-            N,C = tf.shape(pre_layer)
-            in_size = C
-
+            in_size = pre_layer.get_shape()[-1]
             w_f = tf.get_variable(shape=[in_size,out_size],initializer=tf.contrib.layers.xavier_initializer(),name="weight")
+
             b_f = tf.get_variable(shape=[out_size],initializer=tf.contrib.layers.xavier_initializer(),name="bias")
 
             mul = tf.matmul(pre_layer,w_f)

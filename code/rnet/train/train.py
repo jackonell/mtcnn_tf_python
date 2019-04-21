@@ -3,8 +3,8 @@ import tensorflow as tf
 import sys, os
 #注意到相当于将当前脚本移到code目录下执行
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
-from mtcnn_cfg import cfg
-from mtcnn import RNet
+from net.cfgs import cfg
+from net.component_nets import RNet
 
 def cls_loss_and_acc(pred,label):
     """
@@ -205,6 +205,9 @@ def train():
             if gstep % 40000 == 0:
                 saver.save(sess,cfg.RNET_MODEL_PATH+"RNet",global_step=gstep)
                 print("save RNet model at iteration: %d"%gstep)
+
+            if gstep > 240000 and acc > 0.93:
+                break
 
         coord.request_stop()
         coord.join(threads)
