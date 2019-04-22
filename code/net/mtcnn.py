@@ -24,40 +24,25 @@ class Mtcnn(object):
     def calc_real_coordinate(self,ratio,bbox,cls):
         """
         根据当前图像和缩放比例，计算出bbox中的数值对应的真实坐标值
-        25
-        1-15 4-18 7-21 10-24
-        19 12 6.0 2
-        1-12 3-14 5-16 7-18
         """
         field,jump,start = np.array([12,2,6.0])/ratio
 
         cls = np.squeeze(cls)
-        height,width,_ = cls.shape
-        index_arr = np.zeros_like(cls)
 
         cls = cls[:,:,0]
         cls = np.squeeze(cls)
         bbox = np.squeeze(bbox)
 
-        for i in range(height):
-            for j in range(width):
-                index_arr[i][j] = [j,i]
-
         mask = np.where(cls >= self.thresholds[0])
 
         cls = cls[mask]
+
         bbox = bbox[mask]
-        index_arr = index_arr[mask]
-
-
         bbox = bbox*field
+        xy = mask*jump
 
-        index_arr = index_arr*jump
-        wh_arr = np.zeros_like(index_arr)
-        wh_arr = wh_arr+field
-        receptive_field = np.hstack((index_arr,wh_arr))
-
-        bbox = bbox+receptive_field
+        bbox[:,:2] = bbox[:,:2]+xy.T
+        bbox[:,2:] = bbox[:,2:]+filed
 
         return cls,bbox
 
@@ -107,87 +92,77 @@ class Mtcnn(object):
     def detect_rnet(self, img,bbxs):
         """
         判断pnet预测的bbx中，有多少是真正的人脸
-
         """
         if self.rnet_detector is None:
             self.rnet_detector = Detector(RNet,cfg.MODEL_PATH%cfg.RNET_DIR,24)
 
-        #暂时只保存大于24的人脸,至于是否要将小于的人脸resize,留到以后再说
-        # mask = np.min(bbxs[:,2:],axis=1) >= 24
-        # bbxs = bbxs[mask]
-
-        bbxs,cls,bbr,landmark = self.rnet_detector.slide_predict(img,bbxs)
+        #首先要处理bbxs长宽不一致和超出边界的问题
+        cls,bbr,_ = self.rnet_detector.slide_predict(img,bbxs)
 
         cls = np.array(cls)
         bbr = np.array(bbr)
+
         cls = np.squeeze(cls)
         bbr = np.squeeze(bbr)
         cls = cls[:,0]
 
-        cls_refine = []
-        bbx_refine = []
-        landmark_refine = []
-
         thresh = self.thresholds[1]
 
-        for idx in range(len(bbxs)):
-            if cls[idx] > thresh:
-                x,y,w,h = bbxs[idx]
+        mask = np.where(cls > thresh)
 
-                #由于预测的结果是相对于resize后的图片，
-                #所以真实的bbx，有两种计算方式:
-                #1.只将结果看成相对于resize前的图片
-                #2.按相对于resize前的图片计算真实坐标值后，按resize比例缩放
-                #咱是按方法一处理
+        cls = cls[mask]
+        bbr = bbr[mask]
+        bbxs = bbxs[mask]
 
-                #计算真正的bbx
-                # base = np.array([w,h,w,h])
-                # bbx_tmp = np.multiply(base,bbr[idx])+bbxs[idx]
+        wh = bbxs[:,2:]
+        wh0 = np.tile(wh,2)
 
-                # bbx_refine.append(bbx_tmp)
+        bbxs = bbr*wh0+bbxs
 
-                bbx_refine.append(bbxs[idx])
-
-                #保存cls
-                cls_refine.append(cls[idx])
-
-        return cls_refine,bbx_refine,landmark_refine
+        return cls,bbxs,[]
 
     def detect_onet(self, img,bbxs):
         """
         判断rnet过滤后的bbx中，有多少真正的人脸
         """
-        if self.rnet_detector is None:
-            self.rnet_detector = Detector(RNet,cfg.MODEL_PATH%cfg.ONET_DIR,48)
+        if self.onet_detector is None:
+            self.onet_detector = Detector(ONet,cfg.MODEL_PATH%cfg.ONET_DIR,48)
 
-        cls,bbr,landmark = detector.slide_predict(img,bbxs)
+        #首先要处理bbxs长宽不一致和超出边界的问题
+        cls,bbr,landmark = self.onet_detector.slide_predict(img,bbxs)
 
-        cls_output = []
-        bbx_output = []
-        landmark_output = []
+        cls = np.array(cls)
+        bbr = np.array(bbr)
+        landmark = np.array(landmark)
+
+        cls = np.squeeze(cls)
+        bbr = np.squeeze(bbr)
+        landmark = np.squeeze(landmark)
+        cls = cls[:,0]
 
         thresh = self.thresholds[2]
 
-        for idx in range(len(bbxs)):
-            if cls[idx] > thresh:
-                x,y,w,h = bbxs[idx]
+        mask = np.where(cls > thresh)
 
-                base = np.array([w,h])
+        cls = cls[mask]
+        bbr = bbr[mask]
+        bbxs = bbxs[mask]
+        landmark = landmark[mask]
 
-                #计算真正的landmark
-                landmark_tmp = np.array(landmark[idx]).reshape((-1,2))
-                landmark_tmp = landmark_tmp*base+np.array([x,y])
-                landmark_output.append(landmark_tmp)
+        xy = bbxs[:,:2]
+        wh = bbxs[:,2:]
 
-                #计算真正的bbx
-                base = np.array([w,h,w,h])
-                bbx_tmp = base*bbr+bbxs[idx]
-                bbx_output.append(bbx_tmp)
+        wh0 = np.tile(wh,2)
+        bbxs = bbr*wh0+bbxs
 
-                #保存cls
-                cls_output.append(cls[idx])
+        xy1 = np.tile(xy,5)
+        wh1 = np.tile(wh,5)
+        landmark = landmark*wh1+xy1
 
-        return cls_output,bbx_output,landmark_output
+        # landmark = [landmark[:,i*2:i*2+2]*wh+xy for i in range(5)]
+        # landmark = np.concatenate(landmark,axis=1) #上一种写法性能更加,但是会占用更过的内存
+
+        return cls,bbxs,landmark
 
     def detect(self, img):
         """

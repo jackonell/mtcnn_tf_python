@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 # index_arr = np.array([[2,4],[1,4],[2,4]])
 
@@ -44,6 +45,69 @@ import numpy as np
 # print(a)
 
 bbxs = np.array([[1,2,3,4],[2,3,4,5],[3,4,5,6]])
+mask = np.array([[1,1,1],[2,2,2]])
+print(mask.T)
 
-mask = np.where(bbxs > 3)
-print(mask)
+bbxs[:,:2] = bbxs[:,:2]+mask.T
+bbxs[:,2:] = bbxs[:,2:]+30
+
+print(bbxs)
+
+# mask = np.where(bbxs > 3)
+# print(mask)
+
+# def test():
+    # return []
+
+# print(test())
+
+# print([i for i in range(4)])
+
+# bbxs = np.random.randint(10,size=(5,4))
+# landmark = np.random.randint(10,size=(5,10))
+
+
+# xy0 = bbxs[:,:2]
+# wh0 = bbxs[:,2:]
+
+# start = time.time()
+# xy = np.tile(xy0,5) #如果不采用这种方式，而是直接采用广播，是否性能更加
+# wh = np.tile(wh0,5)
+# landmark0 = landmark*wh+xy
+
+# mid = time.time()
+
+# landmark1 = [landmark[:,i*2:i*2+2]*wh0+xy0 for i in range(5)]
+# landmark1 = np.concatenate(landmark1,axis=1)
+
+# end = time.time()
+
+# print(mid-start)
+# print(end-mid)
+
+# print(landmark0)
+# print(landmark1)
+
+# bbxs = np.random.randint(10,size=(5,4))
+# bbr = np.random.randint(10,size=(5,4))
+
+
+# bbxs0 = bbxs.copy()
+
+# start = time.time()
+# bbxs0[:,:2] = bbxs0[:,:2]+bbxs0[:,2:]*bbr[:,:2]
+# bbxs0[:,2:] = bbxs0[:,2:]+bbxs0[:,2:]*bbr[:,2:]
+
+# mid = time.time()
+
+# wh = bbxs[:,2:]
+# wh = np.tile(wh,2)
+
+# bbxs1 = bbr*wh+bbxs
+
+# end = time.time()
+
+# print(mid-start)
+# print(end-mid)
+# print(bbxs0)
+# print(bbxs1)
