@@ -39,7 +39,7 @@ class CnnBox:
     def fc(self,pre_layer, name, out_size, activation_fn=None):
         with tf.variable_scope(name):
             pre_layer = tf.contrib.layers.flatten(pre_layer)
-            print("展开：%r"%pre_layer.get_shape())
+            print("展开：%s"%pre_layer.get_shape())
 
             in_size = pre_layer.get_shape()[-1]
             w_f = tf.get_variable(shape=[in_size,out_size],initializer=tf.contrib.layers.xavier_initializer(),name="weight")

@@ -68,7 +68,7 @@ class Mtcnn(object):
         height,width,_ = img.shape
         resize_ratio = 0.79
         if self.pnet_detector is None:
-            self.pnet_detector = Detector(PNet,cfg.PNET_MODEL_PATH)
+            self.pnet_detector = Detector(PNet,cfg.MODEL_PATH%cfg.PNET_DIR)
 
         cls_proposal = []
         bbx_proposal = []
@@ -107,13 +107,14 @@ class Mtcnn(object):
     def detect_rnet(self, img,bbxs):
         """
         判断pnet预测的bbx中，有多少是真正的人脸
+
         """
         if self.rnet_detector is None:
-            self.rnet_detector = Detector(RNet,cfg.RNET_MODEL_PATH,24)
+            self.rnet_detector = Detector(RNet,cfg.MODEL_PATH%cfg.RNET_DIR,24)
 
         #暂时只保存大于24的人脸,至于是否要将小于的人脸resize,留到以后再说
-        mask = np.min(bbxs[:,2:],axis=1) >= 24
-        bbxs = bbxs[mask]
+        # mask = np.min(bbxs[:,2:],axis=1) >= 24
+        # bbxs = bbxs[mask]
 
         bbxs,cls,bbr,landmark = self.rnet_detector.slide_predict(img,bbxs)
 
@@ -156,11 +157,8 @@ class Mtcnn(object):
         """
         判断rnet过滤后的bbx中，有多少真正的人脸
         """
-        detector = Detector(ONet,cfg.ONET_MODEL_PATH)
-
-        #暂时只保存大于48的人脸,至于是否要将小于的人脸resize,留到以后再说
-        mask = np.min(bbxs[:,2:],axis=1) >= 48
-        bbxs = bbxs[mask]
+        if self.rnet_detector is None:
+            self.rnet_detector = Detector(RNet,cfg.MODEL_PATH%cfg.ONET_DIR,48)
 
         cls,bbr,landmark = detector.slide_predict(img,bbxs)
 
@@ -178,12 +176,12 @@ class Mtcnn(object):
 
                 #计算真正的landmark
                 landmark_tmp = np.array(landmark[idx]).reshape((-1,2))
-                landmark_tmp = np.multiply(landmark_tmp,base)+np.array([x,y])
+                landmark_tmp = landmark_tmp*base+np.array([x,y])
                 landmark_output.append(landmark_tmp)
 
                 #计算真正的bbx
                 base = np.array([w,h,w,h])
-                bbx_tmp = np.multiply(base,bbr)+bbxs[idx]
+                bbx_tmp = base*bbr+bbxs[idx]
                 bbx_output.append(bbx_tmp)
 
                 #保存cls
@@ -210,4 +208,11 @@ class Mtcnn(object):
         cls,bbxs,landmark = self.detect_onet(img,bbxs)
 
         return cls,bbxs,landmark
+
+
+if __name__ == "__main__":
+    mtcnn = Mtcnn("RNet",[0.3,0.3,0.0])
+    img = cv2.imread("0_Parade_Parade_0_106.jpg",cv2.IMREAD_COLOR)
+
+    cls,bbr,landmark = mtcnn.detect_rnet(img,[[684,269,37,37]])
 

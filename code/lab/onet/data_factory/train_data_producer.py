@@ -40,7 +40,7 @@ def produce_onet_detection_train_dataset():
     num_pos = 0
 
     size = 48
-    mtcnn = Mtcnn("RNet",[0.3,0.1,0.0])
+    mtcnn = Mtcnn("RNet",[0.3,0.3,0.0])
 
     with open(cfg.ORIGINAL_FORMATTER_TXT_PATH,"r") as f:
         data = f.readlines();
@@ -49,7 +49,7 @@ def produce_onet_detection_train_dataset():
     total_num = len(data)
 
     for line in data:
-        if flag > 3:
+        if flag > 7:
             break
         flag = flag + 1
 

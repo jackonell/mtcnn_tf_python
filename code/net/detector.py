@@ -4,7 +4,6 @@ import cv2
 
 import sys
 import os
-#注意到相当于将当前脚本移到code目录下执行
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
 
 class Detector(object):
@@ -47,6 +46,15 @@ class Detector(object):
         """
         预测结果
         滑动窗口方式，用于rnet与onet
+        几个细节：
+        1.建议框不一定是方形，但是网络只接受方形：
+           1.1 直接resize?
+           1.2 扩展为方形?
+        2.建议框有可能超出了边界
+           2.1 padding?
+           2,2 忽略这些框？
+           2.3 将超出边界的部分舍弃，即直接将这些坐标设为边界坐标？
+        3.bbxs可使用批量预测，不可使用循环逐个预测，速度太慢
         """
         all_cls = []
         all_bbr = []
@@ -56,16 +64,7 @@ class Detector(object):
         for bbx in bbxs:
             x,y,w,h = list(map(int,bbx))
 
-            #对于x或者y小于0的情况,考虑处理方式
-            #1.padding
-            #2.过滤掉
-            #3.设为0
-            if x < 0:
-                x = 0
-            if y < 0:
-                y = 0
-
-            patch = img[x:x+w,y:y+h]
+            patch = img[y:y+h,x:x+w]
             ch,cw,_ = np.shape(patch)
 
             if cw*ch == 0:

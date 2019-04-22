@@ -23,10 +23,27 @@ import numpy as np
 
 # print(bbxs)
 
-base = np.array([1,2,1,2])
-bbr = np.array([2,3,4,5])
+# base = np.array([1,2,1,2])
+# bbr = np.array([2,3,4,5])
 
-bb = np.multiply(base,bbr)
+# bb = np.multiply(base,bbr)
 
-print(bb)
+# print(bb)
 
+# def testlst(ls):
+    # ls.append(8)
+
+# a = np.array([1,2,3])
+# b = np.tile(a,(1,3))
+# print(b)
+# b = np.array([1,2,3])
+# print(np.dot(a,b))
+# print(np.mat(a)*np.mat(b).T)
+# print(a*b)
+# testlst(a)
+# print(a)
+
+bbxs = np.array([[1,2,3,4],[2,3,4,5],[3,4,5,6]])
+
+mask = np.where(bbxs > 3)
+print(mask)

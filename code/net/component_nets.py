@@ -4,7 +4,6 @@ import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
 from net.network import CnnBox
 
-
 def PNet(input):
     cb = CnnBox()
 

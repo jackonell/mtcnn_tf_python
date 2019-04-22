@@ -6,9 +6,9 @@ def data_augmentation(img,gtbox,landmark,bbx,rotate,is_flip):
     对图片进行旋转和翻转
 
     :img: 图片
-    :gtbox: 真实框,转换为（x1,y1,w,h）
+    :gtbox: 真实框,转换为（x1,y1,x2,y2）
     :landmark: 特征点
-    :bbx: 建议框
+    :bbx: 建议框,转换为（x1,y1,x2,y2）
     :rotate: 旋转角度
     :is_flip: 是否翻转
     """
@@ -151,6 +151,15 @@ def calc_receptive_filed():
     start = 6.0
 
     return field,jump,start
+
+def draw_bbx_on_img(img_path,cls,bbxs):
+    img0 = cv2.imread(img_path,cv2.IMREAD_COLOR)
+    img_name = img_path.split("/")[-1]
+    for idx in range(len(cls)):
+        if cls[idx] > 0.0:
+            rec = list(map(int,bbxs[idx]))
+            cv2.rectangle(img0,(rec[0],rec[1]),(rec[0]+rec[2],rec[1]+rec[3]),(0,255,0),2)
+    cv2.imwrite(img_name,img0)
 
 
 if __name__ == "__main__":
