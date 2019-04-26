@@ -1,5 +1,49 @@
 import numpy as np
 import cv2
+import time
+from net.cfgs import cfg
+
+def timecost(fn):
+    """
+    用于记录函数执行时间
+    """
+    def log_cost(*args,**kwargs):
+        start = time.time()
+        f = fn(*args,**kwargs)
+        if cfg.DEBUG:
+            print("%s cost time:%r"%(fn.__name__,time.time()-start))
+        return f
+    return log_cost
+
+def crop_img_by_bbxs(img,bbxs,size):
+    """
+    根据输入框对图像进行裁剪
+    1.过滤超出边界的图像
+    2.裁剪
+    2.缩放裁剪出来的图片
+    """
+    mh,mw,_ = img.shape
+
+    patches = []
+    bbxs_filter = []
+
+    for bbx in bbxs:
+        bbx = list(map(int,bbx))
+        x,y,w,h = bbx
+
+        if x < 0 or y < 0 or x+w > mw or y+h > mh or np.maximum(w,h) < 20:
+            continue
+
+        patch = img[y:y+h,x:x+w]
+        patch = cv2.resize(patch,(size,size))
+
+        patches.append(patch)
+        bbxs_filter.append(bbx)
+
+    # print(np.shape(patches))
+    # print(bbxs_filter[:10])
+
+    return patches,np.array(bbxs_filter)
 
 def data_augmentation(img,gtbox,landmark,bbx,rotate,is_flip):
     """
@@ -90,7 +134,7 @@ def rotate_box(box,matrix):
 
     return bbx.reshape((-1,2))
 
-
+@timecost
 def nms(bbxs,confidences,thresh):
     """
     对计算出的框进行极大值抑制（重叠度过高的框进行删减）
@@ -123,7 +167,6 @@ def iou(bbx,target):
     :bbx: 需要判定的框
     :target: 进行IOU计算的真实bbx集合
     :returns: iou最高得分与对应gt bbox
-
     """
     bbx_area    = bbx[2]*bbx[3]
     target_area = target[:,2]*target[:,3]

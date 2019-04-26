@@ -1,7 +1,8 @@
 import tensorflow as tf
 import numpy as np
 import cv2
-from net.utils import nms
+import time
+from net.utils import nms,crop_img_by_bbxs,timecost
 from net.detector import Detector
 from net.cfgs import cfg
 from net.component_nets import PNet,RNet,ONet
@@ -39,13 +40,15 @@ class Mtcnn(object):
 
         bbox = bbox[mask]
         bbox = bbox*field
+        mask = np.array(mask,dtype=np.float64)
         xy = mask*jump
 
         bbox[:,:2] = bbox[:,:2]+xy.T
-        bbox[:,2:] = bbox[:,2:]+filed
+        bbox[:,2:] = bbox[:,2:]+field
 
         return cls,bbox
 
+    @timecost
     def detect_pnet(self, img):
         """
         预测图片上的人脸位置与特征点
@@ -89,15 +92,19 @@ class Mtcnn(object):
 
         return cls_proposal,bbx_proposal,landmark_proposal
 
+    @timecost
     def detect_rnet(self, img,bbxs):
         """
         判断pnet预测的bbx中，有多少是真正的人脸
         """
+        size = 24
         if self.rnet_detector is None:
-            self.rnet_detector = Detector(RNet,cfg.MODEL_PATH%cfg.RNET_DIR,24)
+            self.rnet_detector = Detector(RNet,cfg.MODEL_PATH%cfg.RNET_DIR,size)
 
         #首先要处理bbxs长宽不一致和超出边界的问题
-        cls,bbr,_ = self.rnet_detector.slide_predict(img,bbxs)
+        patches,bbxs = crop_img_by_bbxs(img,bbxs,size)
+
+        cls,bbr,_ = self.rnet_detector.slide_predict(patches,size)
 
         cls = np.array(cls)
         bbr = np.array(bbr)
@@ -121,15 +128,20 @@ class Mtcnn(object):
 
         return cls,bbxs,[]
 
+    @timecost
     def detect_onet(self, img,bbxs):
         """
         判断rnet过滤后的bbx中，有多少真正的人脸
         """
+        size = 48
         if self.onet_detector is None:
-            self.onet_detector = Detector(ONet,cfg.MODEL_PATH%cfg.ONET_DIR,48)
+            self.onet_detector = Detector(ONet,cfg.MODEL_PATH%cfg.ONET_DIR,size)
+
 
         #首先要处理bbxs长宽不一致和超出边界的问题
-        cls,bbr,landmark = self.onet_detector.slide_predict(img,bbxs)
+        patches,bbxs = crop_img_by_bbxs(img,bbxs,size)
+
+        cls,bbr,landmark = self.onet_detector.slide_predict(patches,size)
 
         cls = np.array(cls)
         bbr = np.array(bbr)

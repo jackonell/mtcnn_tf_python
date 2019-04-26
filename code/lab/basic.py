@@ -1,6 +1,36 @@
 import numpy as np
 import time
 
+
+bbxs = np.array([[[2,3,4,5],[1,2,3,4]],[[4,5,6,7],[5,6,7,8]]])
+
+print(bbxs[:,:,1:5])
+
+# img = np.random.randint(255,size=(10,10))
+# print(img)
+
+# print(np.where(img>150))
+
+# bbxs = np.array([[[2,3,4,5],[1,2,3,4]],[[4,5,6,7],[5,6,7,8]]])
+
+# patches = img[bbxs]
+# print(patches)
+
+# filters = np.where(bbxs[:,:2] >= 0 and bbxs[:,2:] < [mw,mh])
+
+
+
+# x1 = bbxs[:,0]
+# y1 = bbxs[:,0]+bbxs[:,2]
+# x2 = bbxs[:,1]
+# y2 = bbxs[:,1]+bbxs[:,3]
+# print(x1)
+# print(y1)
+# print([1:5])
+
+# filter_patch = img[x1]
+# print(np.shape(filter_patch))
+
 # index_arr = np.array([[2,4],[1,4],[2,4]])
 
 # wh_arr = np.zeros_like(index_arr)
@@ -44,14 +74,14 @@ import time
 # testlst(a)
 # print(a)
 
-bbxs = np.array([[1,2,3,4],[2,3,4,5],[3,4,5,6]])
-mask = np.array([[1,1,1],[2,2,2]])
-print(mask.T)
+# bbxs = np.array([[1,2,3,4],[2,3,4,5],[3,4,5,6]])
+# mask = np.array([[1,1,1],[2,2,2]])
+# print(mask.T)
 
-bbxs[:,:2] = bbxs[:,:2]+mask.T
-bbxs[:,2:] = bbxs[:,2:]+30
+# bbxs[:,:2] = bbxs[:,:2]+mask.T
+# bbxs[:,2:] = bbxs[:,2:]+30
 
-print(bbxs)
+# print(bbxs)
 
 # mask = np.where(bbxs > 3)
 # print(mask)

@@ -4,6 +4,8 @@ cfg = edict()
 
 cfg.BATCH_SIZE = 224
 
+cfg.DEBUG = False
+
 #原始数据集中的索引与标签文件
 cfg.ORIGINAL_TXT_PATH          = "../data/origin/wider_face_split/wider_face_train_bbx_gt.txt"
 #经过规范化后的索引与标签文件

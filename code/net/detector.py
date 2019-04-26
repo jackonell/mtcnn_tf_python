@@ -2,10 +2,6 @@ import tensorflow as tf
 import numpy as np
 import cv2
 
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
-
 class Detector(object):
 
     """
@@ -42,44 +38,46 @@ class Detector(object):
         cls,bbr,landmark = self.sess.run([self.fcls_pred,self.bbr_pred,self.landmark_pred],feed_dict={"IMG:0":img})
         return cls,bbr,landmark
 
-    def slide_predict(self, img, bbxs):
+    def slide_predict(self, patches,size):
         """
         预测结果
         滑动窗口方式，用于rnet与onet
         几个细节：
         1.建议框不一定是方形，但是网络只接受方形：
-           1.1 直接将建议框中的图片resize为方形?
+           1.1 直接将建议框中的图片resize为方形?(我采用的方式)
            1.2 建议框按长边扩展为方形?
         2.建议框有可能超出了边界
            2.1 padding?
-           2,2 忽略这些框？
+           2,2 忽略这些框？(我采用的方式)
            2.3 将这些框超出边界的部分舍弃？
         3.bbxs可使用批量预测，不可使用循环逐个预测，速度太慢
         """
         all_cls = []
         all_bbr = []
         all_landmark = []
-        all_bbx = []
 
-        for bbx in bbxs:
-            x,y,w,h = list(map(int,bbx))
+        #对patches考虑使用批量预测（batch size根据数据量确定）
+        batch_size = int(2048*12/size)
 
-            patch = img[y:y+h,x:x+w]
-            ch,cw,_ = np.shape(patch)
+        step = np.shape(patches)[0]/batch_size
+        step = int(np.ceil(step))
+        print("patch shape:%r batch_size:%d step:%d"%(np.shape(patches),batch_size,step))
 
-            if cw*ch == 0:
-                continue
+        start = 0
+        end = batch_size
+        for idx in range(step):
+            one_batch = patches[start:end]
+            cls,bbr,landmark = self.sess.run([self.fcls_pred,self.bbr_pred,self.landmark_pred],feed_dict={"IMG:0":one_batch})
 
-            patch = cv2.resize(patch,(self.size,self.size))
-            patch = patch[np.newaxis,:,:,:]
+            all_cls.extend(cls)
+            all_bbr.extend(bbr)
+            all_landmark.extend(landmark)
 
-            cls,bbr,landmark = self.sess.run([self.fcls_pred,self.bbr_pred,self.landmark_pred],feed_dict={"IMG:0":patch})
+            start = end
+            end = end+batch_size
 
-            all_cls.append(cls)
-            all_bbr.append(bbr)
-            all_landmark.append(landmark)
-            all_bbx.append(bbx)
+        print(np.shape(all_cls))
 
-        return all_bbx,all_cls,all_bbr,all_landmark
+        return all_cls,all_bbr,all_landmark
 
 

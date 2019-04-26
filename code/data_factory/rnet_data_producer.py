@@ -33,8 +33,8 @@ def detection_data(mtcnn,size,data_dir):
     total_num = len(data)
 
     for line in data:
-        # if flag > 1000:
-            # break
+        if flag > 7:
+            break
         flag = flag + 1
 
         annotations = line.strip().split()
