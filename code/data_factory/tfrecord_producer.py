@@ -102,9 +102,9 @@ def produce_train_tfrecord_type_specific(data_dir,img_type,base_num=None):
         img_txt_path = cfg.TRAIN_NEG_TXT_PATH%data_dir
     elif img_type == "pos":
         img_txt_path = cfg.TRAIN_POS_TXT_PATH%data_dir
-    elif img_type == "part":
+    elif img_type == "par":
         img_txt_path = cfg.TRAIN_PART_TXT_PATH%data_dir
-    else img_type == "landmark":
+    elif img_type == "landmark":
         img_txt_path = cfg.TRAIN_LANDMARK_TXT_PATH%data_dir
 
     with open(img_txt_path,"r") as f:
@@ -124,7 +124,15 @@ def produce_train_tfrecord_in_multi_file(data_dir):
     produce_train_tfrecord_type_specific(data_dir,"par")
     produce_train_tfrecord_type_specific(data_dir,"landmark")
 
-def read_batch_data_from_tfrecord(data_path,batch_size_s):
+def image_color_distort(inputs):
+    inputs = tf.image.random_contrast(inputs, lower=0.5, upper=1.5)
+    inputs = tf.image.random_brightness(inputs, max_delta=0.2)
+    inputs = tf.image.random_hue(inputs,max_delta= 0.2)
+    inputs = tf.image.random_saturation(inputs,lower = 0.5, upper= 1.5)
+
+    return inputs
+
+def read_batch_data_from_tfrecord(data_path,size,batch_size_s):
     """
     从tfrecord中读取数据
     """
@@ -147,7 +155,7 @@ def read_batch_data_from_tfrecord(data_path,batch_size_s):
     bbx      = tf.cast(features['sample/bbx'],tf.float32)
     landmark = tf.cast(features['sample/landmark'],tf.float32)
 
-    image = tf.reshape(image,[24,24,3])
+    image = tf.reshape(image,[size,size,3])
     image = image_color_distort(image)
     image = (tf.cast(image,tf.float32)-127.5)/128
 
@@ -155,11 +163,11 @@ def read_batch_data_from_tfrecord(data_path,batch_size_s):
 
     return batch_images,batch_labels,batch_bbxs,batch_landmarks
 
-def read_batch_data_from_multi_tfrecord(data_dir):
-    batch_images_pos,batch_labels_pos,batch_bbxs_pos,batch_landmarks_pos = read_batch_data_from_tfrecord(cfg.TRAIN_TYPEWISE_TFRECORDS%(data_dir,"pos"),cfg.BATCH_SIZE/7)
-    batch_images_par,batch_labels_par,batch_bbxs_par,batch_landmarks_par = read_batch_data_from_tfrecord(cfg.TRAIN_TYPEWISE_TFRECORDS%(data_dir,"par"),cfg.BATCH_SIZE/7)
-    batch_images_neg,batch_labels_neg,batch_bbxs_neg,batch_landmarks_neg = read_batch_data_from_tfrecord(cfg.TRAIN_TYPEWISE_TFRECORDS%(data_dir,"neg"),cfg.BATCH_SIZE/7*3)
-    batch_images_landmark,batch_labels_landmark,batch_bbxs_landmark,batch_landmarks_landmark = read_batch_data_from_tfrecord(cfg.TRAIN_TYPEWISE_TFRECORDS%(data_dir,"landmark"),cfg.BATCH_SIZE/7*2)
+def read_batch_data_from_multi_tfrecord(data_dir,size):
+    batch_images_pos,batch_labels_pos,batch_bbxs_pos,batch_landmarks_pos = read_batch_data_from_tfrecord(cfg.TRAIN_TYPEWISE_TFRECORDS%(data_dir,"pos"),size,cfg.BATCH_SIZE/7)
+    batch_images_par,batch_labels_par,batch_bbxs_par,batch_landmarks_par = read_batch_data_from_tfrecord(cfg.TRAIN_TYPEWISE_TFRECORDS%(data_dir,"par"),size,cfg.BATCH_SIZE/7)
+    batch_images_neg,batch_labels_neg,batch_bbxs_neg,batch_landmarks_neg = read_batch_data_from_tfrecord(cfg.TRAIN_TYPEWISE_TFRECORDS%(data_dir,"neg"),size,cfg.BATCH_SIZE/7*3)
+    batch_images_landmark,batch_labels_landmark,batch_bbxs_landmark,batch_landmarks_landmark = read_batch_data_from_tfrecord(cfg.TRAIN_TYPEWISE_TFRECORDS%(data_dir,"landmark"),size,cfg.BATCH_SIZE/7*2)
 
     batch_images    = tf.concat([batch_images_neg,    batch_images_par,    batch_images_pos,    batch_images_landmark], axis=0)
     batch_labels    = tf.concat([batch_labels_neg,    batch_labels_par,    batch_labels_pos,    batch_labels_landmark], axis=0)
@@ -168,8 +176,8 @@ def read_batch_data_from_multi_tfrecord(data_dir):
 
     return batch_images,batch_labels,batch_bbxs,batch_landmarks
 
-def read_batch_data_from_single_tfrecord(data_dir):
-    batch_images,batch_labels,batch_bbxs,batch_landmarks = read_batch_data_from_tfrecord(cfg.TRAIN_TFRECORDS%(data_dir),cfg.BATCH_SIZE)
+def read_batch_data_from_single_tfrecord(data_dir,size):
+    batch_images,batch_labels,batch_bbxs,batch_landmarks = read_batch_data_from_tfrecord(cfg.TRAIN_TFRECORDS%(data_dir),size,cfg.BATCH_SIZE)
 
     return batch_images,batch_labels,batch_bbxs,batch_landmarks
 

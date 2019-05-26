@@ -1,7 +1,7 @@
 import tensorflow as tf
 import sys, os
 #注意到相当于将当前脚本移到code目录下执行
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from net.network import CnnBox
 
 def PNet(input):
@@ -39,7 +39,7 @@ def ONet(input):
 
     onet = cb.conv2d(input,"conv1",32,activation_fn=cb.prelu)
     onet = cb.max_pool2d(onet,"pool1",filter_size=[1,3,3,1])
-    onet = cb.conv2d(onet,"conv2",64,activation_fn=cv.prelu)
+    onet = cb.conv2d(onet,"conv2",64,activation_fn=cb.prelu)
     onet = cb.max_pool2d(onet,"pool2",filter_size=[1,3,3,1])
     onet = cb.conv2d(onet,"conv3",64,activation_fn=cb.prelu)
     onet = cb.max_pool2d(onet,"pool3")

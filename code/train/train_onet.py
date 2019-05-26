@@ -1,3 +1,5 @@
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from data_factory.tfrecord_producer import read_batch_data_from_multi_tfrecord
 from train import train
 from net.cfgs import cfg

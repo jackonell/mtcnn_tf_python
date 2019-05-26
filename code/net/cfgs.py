@@ -26,7 +26,7 @@ cfg.TRAIN_LANDMARK_TXT_PATH  = "../data/%s/train_landmark.txt"
 cfg.TRAIN_IMG_PATH           = "../data/%s/images/"
 cfg.TRAIN_TFRECORDS          = "../data/%s/train.tfrecords"
 cfg.TRAIN_TYPEWISE_TFRECORDS = "../data/%s/train_%s.tfrecords"
-cfg.MODEL_PATH               = "../data/%s/models/"
+cfg.MODEL_PATH               = "../models/%s/"
 
 #不同网络对应数据文件夹名称
 cfg.PNET_DIR      = "pdata"

@@ -11,15 +11,6 @@ from net.component_nets import PNet,RNet
 from net.detector import Detector
 from net.mtcnn import Mtcnn
 
-def draw_bbx_on_img(img_path,cls,bbxs):
-    img0 = cv2.imread(img_path,cv2.IMREAD_COLOR)
-    img_name = img_path.split("/")[-1]
-    for idx in range(len(cls)):
-        if cls[idx] > 0.0:
-            rec = list(map(int,bbxs[idx]))
-            cv2.rectangle(img0,(rec[0],rec[1]),(rec[0]+rec[2],rec[1]+rec[3]),(0,255,0),2)
-    cv2.imwrite(img_name,img0)
-
 def produce_onet_detection_train_dataset():
     """
     产生用于训练onet的detection数据集:

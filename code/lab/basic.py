@@ -2,9 +2,9 @@ import numpy as np
 import time
 
 
-bbxs = np.array([[[2,3,4,5],[1,2,3,4]],[[4,5,6,7],[5,6,7,8]]])
+# bbxs = np.array([[[2,3,4,5],[1,2,3,4]],[[4,5,6,7],[5,6,7,8]]])
 
-print(bbxs[:,:,1:5])
+# print(bbxs[:,:,1:5])
 
 # img = np.random.randint(255,size=(10,10))
 # print(img)
@@ -141,3 +141,8 @@ print(bbxs[:,:,1:5])
 # print(end-mid)
 # print(bbxs0)
 # print(bbxs1)
+
+cls = np.array([[1,5,9,2],[12,9,11,8]])
+print(cls[::-1])
+mask = np.where(cls > 7) 
+print(mask)

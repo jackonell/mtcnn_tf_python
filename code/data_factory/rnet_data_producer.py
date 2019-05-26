@@ -9,7 +9,7 @@ from net.cfgs import cfg
 from net.utils import iou,data_augmentation
 from net.component_nets import PNet,RNet
 from net.mtcnn import Mtcnn
-from net.utils import draw_bbx_on_img
+from net.utils import iou,draw_bbx_on_img
 
 def detection_data(mtcnn,size,data_dir):
     """
@@ -33,8 +33,8 @@ def detection_data(mtcnn,size,data_dir):
     total_num = len(data)
 
     for line in data:
-        if flag > 7:
-            break
+        # if flag > 7:
+            # break
         flag = flag + 1
 
         annotations = line.strip().split()
@@ -48,8 +48,8 @@ def detection_data(mtcnn,size,data_dir):
         cls,bbxs,_ = mtcnn.detect(img)
 
         # 查看图片
-        draw_bbx_on_img(img_path,cls,bbxs)
-        continue
+        # draw_bbx_on_img(img_path,cls,bbxs)
+        # continue
 
         # 对剩余的框，为其打标签，pos,par,neg,并产生用于训练的图片
         neg_temp = 0
@@ -61,12 +61,13 @@ def detection_data(mtcnn,size,data_dir):
             if w < size or h < size or x < 0 or y < 0:
                 continue
 
-            iou = IOU(box,true_boxes)
-            max_idx = np.argmax(iou)
-            miou = np.max(iou)
+            ious = iou(box,true_boxes)
+            max_idx = np.argmax(ious)
+            miou = np.max(ious)
+            tbox = true_boxes[max_idx]
 
             if miou >= 0.4:
-                tx,ty,tw,th = true_boxes[max_idx]
+                tx,ty,tw,th = tbox
 
                 offset_x = (tx-x)/w
                 offset_y = (ty-y)/h
@@ -140,6 +141,7 @@ def landmark_data(mtcnn,size,data_dir):
         ma = ma.strip().split()
 
         img_path = cfg.ORIGINAL_LANDMARK_IMG_PATH+ma[0].replace("\\","/")
+        print(img_path)
         bbx = list(map(int,ma[1:5]))
         landmark = list(map(float,ma[5:]))
 
@@ -158,14 +160,13 @@ def landmark_data(mtcnn,size,data_dir):
 
         #对剩余的框，为pos框，记录landmark
         for box in bbxs:
-            box = box[:-1]
             rx,ry,rw,rh = box
 
             if rw < size or rh < size or rx < 0 or ry < 0:
                 continue
 
-            iou = IOU(box,true_boxes)
-            miou = np.max(iou)
+            ious = iou(box,true_boxes)
+            miou = np.max(ious)
 
             #如果是正例，则计算landmark
             if miou >= 0.65:
@@ -196,9 +197,9 @@ if __name__ == "__main__":
     data_dir = cfg.RNET_DIR
 
     #产生训练数据
-    detection_data(mtcnn,size,data_dir)
-    landmark_data(mtcnn,size,data_dir)
+    # detection_data(mtcnn,size,data_dir)
+    # landmark_data(mtcnn,size,data_dir)
 
     #产生tfrecord
-    produce_train_tfrecord_in_multi_file(data_dir)
+    # produce_train_tfrecord_in_multi_file(data_dir)
 

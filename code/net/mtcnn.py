@@ -2,7 +2,10 @@ import tensorflow as tf
 import numpy as np
 import cv2
 import time
-from net.utils import nms,crop_img_by_bbxs,timecost
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from net.utils import nms,crop_img_by_bbxs,timecost,draw_bbx_on_img
 from net.detector import Detector
 from net.cfgs import cfg
 from net.component_nets import PNet,RNet,ONet
@@ -41,6 +44,7 @@ class Mtcnn(object):
         bbox = bbox[mask]
         bbox = bbox*field
         mask = np.array(mask,dtype=np.float64)
+        mask = mask[::-1]
         xy = mask*jump
 
         bbox[:,:2] = bbox[:,:2]+xy.T
@@ -111,11 +115,19 @@ class Mtcnn(object):
 
         cls = np.squeeze(cls)
         bbr = np.squeeze(bbr)
+
+        if len(cls) == 0:
+            return [],[],[]
+        if cls.ndim == 1:
+            cls = cls[np.newaxis,:]
         cls = cls[:,0]
 
         thresh = self.thresholds[1]
 
         mask = np.where(cls > thresh)
+
+        if len(mask[0]) == 0:
+            return [],[],[]
 
         cls = cls[mask]
         bbr = bbr[mask]
@@ -136,7 +148,6 @@ class Mtcnn(object):
         size = 48
         if self.onet_detector is None:
             self.onet_detector = Detector(ONet,cfg.MODEL_PATH%cfg.ONET_DIR,size)
-
 
         #首先要处理bbxs长宽不一致和超出边界的问题
         patches,bbxs = crop_img_by_bbxs(img,bbxs,size)
@@ -198,8 +209,12 @@ class Mtcnn(object):
 
 
 if __name__ == "__main__":
-    mtcnn = Mtcnn("RNet",[0.3,0.3,0.0])
-    img = cv2.imread("0_Parade_Parade_0_106.jpg",cv2.IMREAD_COLOR)
+    img_path = "/home/brooks/deeplearning/face/mtcnn_tf_python/code/IMG_20170613_114501.jpg"
+    mtcnn = Mtcnn("ONet",[0.6,0.6,0.7])
+    img = cv2.imread(img_path,cv2.IMREAD_COLOR)
 
-    cls,bbr,landmark = mtcnn.detect_rnet(img,[[684,269,37,37]])
+    cls,bbxs,landmark = mtcnn.detect(img)
+
+    draw_bbx_on_img(img_path,cls,bbxs)
+    print(bbxs)
 

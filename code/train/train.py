@@ -4,6 +4,7 @@ import sys, os
 #注意到相当于将当前脚本移到code目录下执行
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from net.cfgs import cfg
+from net.component_nets import PNet,RNet,ONet
 
 def cls_loss_and_acc(pred,label):
     """
@@ -67,14 +68,6 @@ def landmark_loss(pred_landmark,landmark,label):
 
     return landmark_loss
 
-def image_color_distort(inputs):
-    inputs = tf.image.random_contrast(inputs, lower=0.5, upper=1.5)
-    inputs = tf.image.random_brightness(inputs, max_delta=0.2)
-    inputs = tf.image.random_hue(inputs,max_delta= 0.2)
-    inputs = tf.image.random_saturation(inputs,lower = 0.5, upper= 1.5)
-
-    return inputs
-
 def train_net_wise(current_net,size):
     """
     loss and optimizer
@@ -103,9 +96,16 @@ def train(read_tfrecord,ratio,model_name,data_dir,size,iterations):
     @size: 图片大小
     @iterations: 训练的迭代次数
     """
-    batch_images,batch_labels,batch_bbxs,batch_landmarks = read_tfrecord(data_dir)
+    if "PNet" == model_name:
+        xnet = PNet
+    elif "RNet" == model_name:
+        xnet = RNet
+    elif "ONet" == model_name:
+        xnet = ONet
 
-    _cls_loss,_bbx_loss,_landmark_loss,accuracy,filter_pred,filter_label = train_net_wise(RNet,size,cfg.BATCH_SIZE)
+    batch_images,batch_labels,batch_bbxs,batch_landmarks = read_tfrecord(data_dir,size)
+
+    _cls_loss,_bbx_loss,_landmark_loss,accuracy,filter_pred,filter_label = train_net_wise(xnet,size)
 
     loss = ratio[0]*_cls_loss+ratio[1]*_bbx_loss+ratio[2]*_landmark_loss
 
@@ -134,12 +134,12 @@ def train(read_tfrecord,ratio,model_name,data_dir,size,iterations):
             if gstep % 25 == 0:
                 print("训练批次：%d,准确率:%f,分类loss:%f,BBX loss:%f,landmark loss:%f,total loss：%f,lr: %f"%(gstep,acc,vcloss,vbloss,vlloss,vloss,lr))
 
-            if gstep % 300 == 0:
-                print(fpred)
-                print(flabel)
+            # if gstep % 300 == 0:
+                # print(fpred)
+                # print(flabel)
 
             if gstep % key_iterations == 0:
-                saver.save("%s%s"$(cfg.MODEL_PATH%data_dir,model_name),global_step=gstep)
+                saver.save(sess,"%s%s"%(cfg.MODEL_PATH%data_dir,model_name),global_step=gstep)
                 print("save %s model at iteration: %d"%(model_name,gstep))
 
             # if gstep > key_iterations*2.5 and acc > 0.95:

@@ -1,0 +1,4 @@
+model_checkpoint_path: "RNet-120000"
+all_model_checkpoint_paths: "RNet-40000"
+all_model_checkpoint_paths: "RNet-80000"
+all_model_checkpoint_paths: "RNet-120000"

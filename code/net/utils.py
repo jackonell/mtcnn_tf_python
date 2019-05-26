@@ -1,6 +1,9 @@
 import numpy as np
 import cv2
 import time
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from net.cfgs import cfg
 
 def timecost(fn):
@@ -202,8 +205,7 @@ def draw_bbx_on_img(img_path,cls,bbxs):
         if cls[idx] > 0.0:
             rec = list(map(int,bbxs[idx]))
             cv2.rectangle(img0,(rec[0],rec[1]),(rec[0]+rec[2],rec[1]+rec[3]),(0,255,0),2)
-    cv2.imwrite(img_name,img0)
-
+    cv2.imwrite("result.jpg",img0)
 
 if __name__ == "__main__":
     # a = np.array([3,3,2,2])

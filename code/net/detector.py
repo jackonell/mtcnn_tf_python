@@ -76,8 +76,6 @@ class Detector(object):
             start = end
             end = end+batch_size
 
-        print(np.shape(all_cls))
-
         return all_cls,all_bbr,all_landmark
 
 
