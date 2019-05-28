@@ -7,10 +7,11 @@
 * opencv 3.1.0
 
 所有的代码均在code目录下，首先执行如下命令：
-‘’‘ Bash
+``` Bash
 cd code
 python setup.py
-'''
+```
+
 
 ## 测试
 更改test.py中的图片地址，检测结果会保存在当前目录
