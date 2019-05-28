@@ -58,7 +58,7 @@ def detection_data(mtcnn,size,data_dir):
             x,y,w,h = box
 
             # 可以不写
-            if w < size or h < size or x < 0 or y < 0:
+            if w < 20 or h < 20 or x < 0 or y < 0:
                 continue
 
             ious = iou(box,true_boxes)
@@ -162,7 +162,7 @@ def landmark_data(mtcnn,size,data_dir):
         for box in bbxs:
             rx,ry,rw,rh = box
 
-            if rw < size or rh < size or rx < 0 or ry < 0:
+            if rw < 20 or rh < 20 or rx < 0 or ry < 0:
                 continue
 
             ious = iou(box,true_boxes)
