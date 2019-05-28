@@ -138,6 +138,11 @@ class Mtcnn(object):
 
         bbxs = bbr*wh0+bbxs
 
+
+        remain = nms(bbxs,cls,0.7)
+        cls = cls[remain]
+        bbxs = bbxs[remain]
+
         return cls,bbxs,[]
 
     @timecost
@@ -185,6 +190,11 @@ class Mtcnn(object):
         # landmark = [landmark[:,i*2:i*2+2]*wh+xy for i in range(5)]
         # landmark = np.concatenate(landmark,axis=1) #上一种写法性能更加,但是会占用更过的内存
 
+        remain = nms(bbxs,cls,0.7)
+        cls = cls[remain]
+        bbxs = bbxs[remain]
+        landmark = landmark[remain]
+
         return cls,bbxs,landmark
 
     def detect(self, img):
@@ -209,12 +219,20 @@ class Mtcnn(object):
 
 
 if __name__ == "__main__":
-    img_path = "/home/brooks/deeplearning/face/mtcnn_tf_python/code/IMG_20170613_114501.jpg"
     mtcnn = Mtcnn("ONet",[0.6,0.6,0.7])
+
+    # img_path = "/root/face/alignment/mtcnn_tf_python/code/11432807003.jpg"
+    # img = cv2.imread(img_path,cv2.IMREAD_COLOR)
+
+    # cls,bbxs,landmark = mtcnn.detect(img)
+    # draw_bbx_on_img(img_path,cls,bbxs,landmark)
+    # print(bbxs)
+
+    start = time.time()
+    img_path = "/root/face/alignment/mtcnn_tf_python/data/origin/lfw_5590/Aaron_Eckhart_0001.jpg"
     img = cv2.imread(img_path,cv2.IMREAD_COLOR)
-
     cls,bbxs,landmark = mtcnn.detect(img)
-
-    draw_bbx_on_img(img_path,cls,bbxs)
+    print("时长：%r"%(time.time()-start))
+    draw_bbx_on_img(img_path,cls,bbxs,landmark)
     print(bbxs)
 

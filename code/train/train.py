@@ -18,14 +18,20 @@ def cls_loss_and_acc(pred,label):
     filter_label = tf.gather(label,keeps)
 
     filter_label_ori = tf.where(tf.equal(filter_label,1),filter_label,1+filter_label) #要修改
-    filter_label_op = tf.where(tf.equal(filter_label_ori,1),1-filter_label_ori,1-filter_label_ori) #要修改
+    filter_label_op = 1-filter_label_ori #要修改
 
     filter_label_n = tf.concat([filter_label_ori,filter_label_op],axis=1)
 
     filter_pred = tf.nn.softmax(filter_pred)
     clsloss = -(filter_label_n*tf.log(filter_pred+1e-10))
+    #online hard example mining
+    num = clsloss.get_shape()[0]
+    hard_num = tf.cast(num*0.7,dtype=tf.int32)
+
+    clsloss = tf.nn.top_k(clsloss,k=hard_num)
     clsloss = tf.reduce_mean(clsloss)
 
+    #计算准确率
     max_idx_l = tf.argmax(filter_pred,1)
     max_idx_p = tf.argmax(filter_label_n,1)
 

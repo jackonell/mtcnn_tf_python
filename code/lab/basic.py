@@ -142,7 +142,13 @@ import time
 # print(bbxs0)
 # print(bbxs1)
 
-cls = np.array([[1,5,9,2],[12,9,11,8]])
-print(cls[::-1])
-mask = np.where(cls > 7) 
-print(mask)
+# cls = np.array([[1,5,9,2],[12,9,11,8]])
+# print(cls[::-1])
+# mask = np.where(cls > 7) 
+# print(mask)
+
+cls = [0.3,0.4,0.5,0.2,0.9,0.4]
+cls = np.sort(cls)[::-1]
+hard_idx = int(len(cls)*0.7)
+print(hard_idx)
+print(cls[:hard_idx])

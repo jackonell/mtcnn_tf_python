@@ -13,8 +13,8 @@ if __name__ == "__main__":
 
     #产生训练数据
     # detection_data(mtcnn,size,data_dir)
-    # landmark_data(mtcnn,size,data_dir)
+    landmark_data(mtcnn,size,data_dir)
 
     #产生tfrecord
-    produce_train_tfrecord_in_multi_file(data_dir)
+    # produce_train_tfrecord_in_multi_file(data_dir)
 

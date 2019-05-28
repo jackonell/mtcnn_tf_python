@@ -198,13 +198,16 @@ def calc_receptive_filed():
 
     return field,jump,start
 
-def draw_bbx_on_img(img_path,cls,bbxs):
+def draw_bbx_on_img(img_path,cls,bbxs,landmark):
     img0 = cv2.imread(img_path,cv2.IMREAD_COLOR)
     img_name = img_path.split("/")[-1]
     for idx in range(len(cls)):
         if cls[idx] > 0.0:
             rec = list(map(int,bbxs[idx]))
             cv2.rectangle(img0,(rec[0],rec[1]),(rec[0]+rec[2],rec[1]+rec[3]),(0,255,0),2)
+        land = landmark[idx].reshape(-1,2)
+        for ma in land:
+            cv2.circle(img0,(int(ma[0]),int(ma[1])),3,(0,0,225),-1)
     cv2.imwrite("result.jpg",img0)
 
 if __name__ == "__main__":

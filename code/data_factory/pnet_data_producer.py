@@ -256,6 +256,8 @@ def detection_data():
     fpos.close()
 
 if __name__ == "__main__":
+    #更改检测人脸txt文件中的记录格式
+    format_data_file()
     #产生训练数据
     detection_data()
     landmark_data()

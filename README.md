@@ -1,10 +1,35 @@
-# mtcnn_tf_python
+## 简介
+基于TensorFlow实现的MTCNN.
 
-face detection data[http://mmlab.ie.cuhk.edu.hk/projects/WIDERFace/]
-landmark data[http://mmlab.ie.cuhk.edu.hk/archive/CNN_FacePoint.htm]
+## 环境
+*TensorFlow 1.2.1
+*python 3.x
 
-A reimplementation of MTCNN using tensorflow.
+## 测试
+更改test.py中的图片地址，检测结果会保存在当前目录
 
-几个问题：
-1.是否使用正则化?
-2.是否需要对bbx做padding?
+## 数据
+1.人脸检测：[WIDER_Face](http://mmlab.ie.cuhk.edu.hk/projects/WIDERFace/)
+2.特征点检测：[CNN_FacePoint](http://mmlab.ie.cuhk.edu.hk/archive/CNN_FacePoint.htm)
+
+将数据解压到data/origin目录
+
+## 训练
+### 1.PNet
+*产生训练数据：python data_factory/pnet_data_producer.py
+*训练PNet：train/train_pnet.py
+### 2.RNet
+*产生训练数据：python data_factory/rnet_data_producer.py
+*训练PNet：train/train_rnet.py
+### 3.ONet
+*产生训练数据：python data_factory/onet_data_producer.py
+*训练PNet：train/train_onet.py
+
+
+##
+1. Kaipeng Zhang, Zhanpeng Zhang, Zhifeng Li, Yu Qiao , " Joint Face Detection and Alignment using Multi-task Cascaded Convolutional Networks," IEEE Signal Processing Letter
+2. [MTCNN-Tensorflow](https://github.com/AITTSMD/MTCNN-Tensorflow)
+3. [MTCNN_face_detection_alignment](https://github.com/kpzhang93/MTCNN_face_detection_alignment)
+    
+     
+
