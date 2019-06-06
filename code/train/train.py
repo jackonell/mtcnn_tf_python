@@ -25,10 +25,19 @@ def cls_loss_and_acc(pred,label):
     filter_pred = tf.nn.softmax(filter_pred)
     clsloss = -(filter_label_n*tf.log(filter_pred+1e-10))
     #online hard example mining
-    num = clsloss.get_shape()[0]
-    hard_num = tf.cast(num*0.7,dtype=tf.int32)
+    # num = clsloss.get_shape()[0]
+    # # num = tf.cast(num,dtype=tf.float32)
+    # keep_ratio = 0.7
+    # hard_num = tf.cast(num*keep_ratio,dtype=tf.int32)
+    clsloss = tf.reduce_sum(clsloss,axis=1)
+    num = tf.shape(clsloss)
+    num = tf.cast(num,dtype=tf.float32)
+    keep_ratio = tf.constant(0.7)
 
-    clsloss = tf.nn.top_k(clsloss,k=hard_num)
+    hard_num = tf.cast(num*keep_ratio,dtype=tf.int32)
+    hard_num = hard_num[0]
+
+    clsloss,_ = tf.nn.top_k(clsloss,k=hard_num)
     clsloss = tf.reduce_mean(clsloss)
 
     #计算准确率
@@ -38,7 +47,7 @@ def cls_loss_and_acc(pred,label):
     correct_pred = tf.equal(max_idx_p, max_idx_l)
     accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
-    return clsloss,accuracy,filter_pred,filter_label_n
+    return clsloss,accuracy
 
 
 def bbx_loss(pred_bbx,bbx,label):
@@ -72,7 +81,7 @@ def landmark_loss(pred_landmark,landmark,label):
     prelloss = tf.reduce_sum(tf.squeeze(prelloss),axis=1)
     landmark_loss = tf.reduce_mean(prelloss)
 
-    return landmark_loss
+    return landmark_loss,filter_pred_landmark,filter_landmark
 
 def train_net_wise(current_net,size):
     """
@@ -85,11 +94,11 @@ def train_net_wise(current_net,size):
 
     fcls_pred,bbr_pred,landmark_pred = current_net(IMG)
 
-    _cls_loss,accuracy,filter_pred,filter_label = cls_loss_and_acc(fcls_pred,CLS)
+    _cls_loss,accuracy = cls_loss_and_acc(fcls_pred,CLS)
     _bbx_loss = bbx_loss(bbr_pred,BBX,CLS)
-    _landmark_loss = landmark_loss(landmark_pred,LANDMARK,CLS)
+    _landmark_loss,fpl,fl = landmark_loss(landmark_pred,LANDMARK,CLS)
 
-    return _cls_loss,_bbx_loss,_landmark_loss,accuracy,filter_pred,filter_label
+    return _cls_loss,_bbx_loss,_landmark_loss,accuracy,fpl,fl
 
 def train(read_tfrecord,ratio,model_name,data_dir,size,iterations):
     """
@@ -111,14 +120,14 @@ def train(read_tfrecord,ratio,model_name,data_dir,size,iterations):
 
     batch_images,batch_labels,batch_bbxs,batch_landmarks = read_tfrecord(data_dir,size)
 
-    _cls_loss,_bbx_loss,_landmark_loss,accuracy,filter_pred,filter_label = train_net_wise(xnet,size)
+    _cls_loss,_bbx_loss,_landmark_loss,accuracy,fpl,fl = train_net_wise(xnet,size)
 
     loss = ratio[0]*_cls_loss+ratio[1]*_bbx_loss+ratio[2]*_landmark_loss
 
-    key_iterations = int(iterations/3)
+    key_iterations = int(iterations/4)
 
     global_step = tf.Variable(0,trainable=False)
-    starter_learning_rate = 0.001
+    starter_learning_rate = 0.01
     learning_rate = tf.train.exponential_decay(starter_learning_rate,global_step,key_iterations,0.1,staircase=True)
 
     optimizer = tf.train.MomentumOptimizer(learning_rate,0.9).minimize(loss,global_step=global_step)
@@ -135,23 +144,20 @@ def train(read_tfrecord,ratio,model_name,data_dir,size,iterations):
         for batch_idx in range(iterations):
             bimg,blabel,bbbx,blandmark = sess.run([batch_images,batch_labels,batch_bbxs,batch_landmarks])
 
-            _,vloss,vcloss,vbloss,vlloss,lr,gstep,acc,fpred,flabel = sess.run([optimizer,loss, _cls_loss,_bbx_loss,_landmark_loss,learning_rate,global_step,accuracy,filter_pred,filter_label],feed_dict={"IMG:0":bimg,"CLS:0":blabel,"BBX:0":bbbx,"LANDMARK:0":blandmark})
+            _,vloss,vcloss,vbloss,vlloss,lr,gstep,acc,ffpl,ffl = sess.run([optimizer,loss, _cls_loss,_bbx_loss,_landmark_loss,learning_rate,global_step,accuracy,fpl,fl],feed_dict={"IMG:0":bimg,"CLS:0":blabel,"BBX:0":bbbx,"LANDMARK:0":blandmark})
+            
+            # if vlloss < 0.25:
+                # print(blandmark)
+                # print(ffpl)
+                # print(ffl)
+
 
             if gstep % 25 == 0:
                 print("训练批次：%d,准确率:%f,分类loss:%f,BBX loss:%f,landmark loss:%f,total loss：%f,lr: %f"%(gstep,acc,vcloss,vbloss,vlloss,vloss,lr))
 
-            # if gstep % 300 == 0:
-                # print(fpred)
-                # print(flabel)
-
             if gstep % key_iterations == 0:
                 saver.save(sess,"%s%s"%(cfg.MODEL_PATH%data_dir,model_name),global_step=gstep)
                 print("save %s model at iteration: %d"%(model_name,gstep))
-
-            # if gstep > key_iterations*2.5 and acc > 0.95:
-                # saver.save("%s%s"$(cfg.MODEL_PATH%data_dir,model_name),global_step=gstep)
-                # print("save %s model at iteration: %d"%(model_name,gstep))
-                # break
 
         coord.request_stop()
         coord.join(threads)

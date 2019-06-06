@@ -27,18 +27,32 @@ import tensorflow as tf
 import tensorflow as tf
 import numpy as np
 
-logits = tf.constant([1.0,0.0])
-labels = tf.constant([0.0,1.0])
+# logits = tf.constant([1.0,0.0])
+# labels = tf.constant([0.0,1.0])
 
-_logits = tf.nn.softmax(logits)
-cross_entropy = -labels*tf.log(_logits)
+# _logits = tf.nn.softmax(logits)
+# cross_entropy = -labels*tf.log(_logits)
 
-loss = (tf.nn.softmax_cross_entropy_with_logits(logits=logits,labels=labels))
+# loss = (tf.nn.softmax_cross_entropy_with_logits(logits=logits,labels=labels))
+
+# with tf.Session() as sess:
+    # sf = sess.run(_logits)
+    # ce = sess.run(cross_entropy)
+    # lossv = sess.run([loss])
+    # print(sf)
+    # print(ce)
+    # print(lossv)
+
+clsloss = tf.placeholder(tf.float32,[None],name="CLS")
+
+num = tf.shape(clsloss)
+num = tf.cast(num,dtype=tf.float32)
+keep_ratio = tf.constant(0.7)
+
+hard_num = tf.cast(num*keep_ratio,dtype=tf.int32)
 
 with tf.Session() as sess:
-    sf = sess.run(_logits)
-    ce = sess.run(cross_entropy)
-    lossv = sess.run([loss])
-    print(sf)
-    print(ce)
-    print(lossv)
+    cos = [0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.1,0.2]
+    hn = sess.run(hard_num,feed_dict={clsloss:cos})
+    print(hn[0])
+

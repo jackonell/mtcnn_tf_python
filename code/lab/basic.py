@@ -147,8 +147,10 @@ import time
 # mask = np.where(cls > 7) 
 # print(mask)
 
-cls = [0.3,0.4,0.5,0.2,0.9,0.4]
-cls = np.sort(cls)[::-1]
-hard_idx = int(len(cls)*0.7)
-print(hard_idx)
-print(cls[:hard_idx])
+cls = np.array([0.3,0.4,0.5,0.2,0.9,0.4])
+cls[[0,1,2,3]] = cls[[2,3,0,1]]
+print(cls)
+# cls = np.sort(cls)[::-1]
+# hard_idx = int(len(cls)*0.7)
+# print(hard_idx)
+# print(cls[:hard_idx])
