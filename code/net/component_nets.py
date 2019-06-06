@@ -22,9 +22,9 @@ def RNet(input):
     cb = CnnBox()
 
     rnet = cb.conv2d(input,"conv1",28,activation_fn=cb.prelu)
-    rnet = cb.max_pool2d(rnet,"pool1")
+    rnet = cb.max_pool2d(rnet,"pool1",padding="SAME",filter_size=[1,3,3,1])
     rnet = cb.conv2d(rnet,"conv2",48,activation_fn=cb.prelu)
-    rnet = cb.max_pool2d(rnet,"pool2")
+    rnet = cb.max_pool2d(rnet,"pool2",filter_size=[1,3,3,1])
     rnet = cb.conv2d(rnet,"conv3",64,filter_size=[2,2],activation_fn=cb.prelu)
     rnet = cb.fc(rnet,"fc1",128,activation_fn=cb.prelu)
 
@@ -38,7 +38,7 @@ def ONet(input):
     cb = CnnBox()
 
     onet = cb.conv2d(input,"conv1",32,activation_fn=cb.prelu)
-    onet = cb.max_pool2d(onet,"pool1",filter_size=[1,3,3,1])
+    onet = cb.max_pool2d(onet,"pool1",padding="SAME",filter_size=[1,3,3,1])
     onet = cb.conv2d(onet,"conv2",64,activation_fn=cb.prelu)
     onet = cb.max_pool2d(onet,"pool2",filter_size=[1,3,3,1])
     onet = cb.conv2d(onet,"conv3",64,activation_fn=cb.prelu)

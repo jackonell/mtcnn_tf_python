@@ -48,7 +48,7 @@ def crop_img_by_bbxs(img,bbxs,size):
 
     return patches,np.array(bbxs_filter)
 
-def data_augmentation(img,gtbox,landmark,bbx,rotate,is_flip):
+def data_augmentation(image,gtboxs,landmarks,bbxs,rotate,is_flip):
     """
     对图片进行旋转和翻转
 
@@ -59,6 +59,9 @@ def data_augmentation(img,gtbox,landmark,bbx,rotate,is_flip):
     :rotate: 旋转角度
     :is_flip: 是否翻转
     """
+    img = image.copy()
+    bbx = bbxs.copy()
+
     width = img.shape[1]
     height = img.shape[0]
 
@@ -78,9 +81,12 @@ def data_augmentation(img,gtbox,landmark,bbx,rotate,is_flip):
     bbx = rotate_box(bbx,matrix)
     crop_img = dst[bbx[0,1]:bbx[1,1],bbx[0,0]:bbx[1,0]]
 
-    if landmark is not None:
+    if landmarks is not None:
+        landmark = landmarks.copy()
         if is_flip:
             landmark[:,0] = width-landmark[:,0]
+            landmark[[0,1]] = landmark[[1,0]] #交换左右眼
+            landmark[[3,4]] = landmark[[4,3]] #交换嘴部左右点
 
         landmark = np.array(landmark).reshape((-1,2))
         # 特征点旋转
@@ -97,7 +103,8 @@ def data_augmentation(img,gtbox,landmark,bbx,rotate,is_flip):
             # cv2.circle(crop_img,(int(ma[0]),int(ma[1])),3,(0,0,225),-1)
         # cv2.imwrite("1.jpg",crop_img)
 
-    elif gtbox is not None:
+    elif gtboxs is not None:
+        gtbox = gtboxs.copy()
         gtbox = np.array(gtbox).reshape((-1,2))
 
         #转为（x1,y1,x2,y2）

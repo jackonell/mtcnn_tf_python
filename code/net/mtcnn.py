@@ -190,7 +190,7 @@ class Mtcnn(object):
         # landmark = [landmark[:,i*2:i*2+2]*wh+xy for i in range(5)]
         # landmark = np.concatenate(landmark,axis=1) #上一种写法性能更加,但是会占用更过的内存
 
-        remain = nms(bbxs,cls,0.7)
+        remain = nms(bbxs,cls,0.5)
         cls = cls[remain]
         bbxs = bbxs[remain]
         landmark = landmark[remain]

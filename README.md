@@ -28,10 +28,10 @@ python setup.py
 * 训练PNet：python train/train_pnet.py
 ### 2.RNet
 * 产生训练数据：python data_factory/rnet_data_producer.py
-* 训练PNet：python train/train_rnet.py
+* 训练RNet：python train/train_rnet.py
 ### 3.ONet
 * 产生训练数据：python data_factory/onet_data_producer.py
-* 训练PNet：python train/train_onet.py
+* 训练ONet：python train/train_onet.py
 
 
 ## 参考
