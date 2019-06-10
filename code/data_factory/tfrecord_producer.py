@@ -119,9 +119,9 @@ def produce_train_tfrecord_in_multi_file(data_dir):
     """
     为每一类图片产生不同的tfrecord
     """
-    # produce_train_tfrecord_type_specific(data_dir,"neg")
-    # produce_train_tfrecord_type_specific(data_dir,"pos")
-    # produce_train_tfrecord_type_specific(data_dir,"par")
+    produce_train_tfrecord_type_specific(data_dir,"neg")
+    produce_train_tfrecord_type_specific(data_dir,"pos")
+    produce_train_tfrecord_type_specific(data_dir,"par")
     produce_train_tfrecord_type_specific(data_dir,"landmark")
 
 def image_color_distort(inputs):

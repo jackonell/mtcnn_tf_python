@@ -172,7 +172,7 @@ def landmark_data(mtcnn,size,data_dir):
             #如果是正例，则计算landmark
             if miou >= 0.65:
                 for is_flip in np.array([False,True]):
-                    for rotate_degree in np.arange(0,5,5):
+                    for rotate_degree in np.arange(-10,15,5):
                         crop_img,landmark_regression,_ = data_augmentation(img,None,landmark,box,rotate_degree,is_flip)
 
                         ch,cw,_ = np.shape(crop_img)

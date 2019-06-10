@@ -10,7 +10,7 @@ if __name__ == "__main__":
     mtcnn = Mtcnn("ONet",[0.6,0.6,0.7])
 
     start = time.time()
-    img_path = "/root/face/alignment/mtcnn_tf_python/code/6.png"
+    img_path = "/root/face/alignment/mtcnn_tf_python/code/14.bmp"
     img = cv2.imread(img_path,cv2.IMREAD_COLOR)
     cls,bbxs,landmark = mtcnn.detect(img)
     print("时长：%r"%(time.time()-start))

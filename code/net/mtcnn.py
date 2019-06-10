@@ -113,17 +113,11 @@ class Mtcnn(object):
         cls = np.array(cls)
         bbr = np.array(bbr)
 
-        cls = np.squeeze(cls)
-        bbr = np.squeeze(bbr)
-
         if len(cls) == 0:
             return [],[],[]
-        if cls.ndim == 1:
-            cls = cls[np.newaxis,:]
         cls = cls[:,0]
 
         thresh = self.thresholds[1]
-
         mask = np.where(cls > thresh)
 
         if len(mask[0]) == 0:
@@ -163,14 +157,15 @@ class Mtcnn(object):
         bbr = np.array(bbr)
         landmark = np.array(landmark)
 
-        cls = np.squeeze(cls)
-        bbr = np.squeeze(bbr)
-        landmark = np.squeeze(landmark)
+        if len(cls) == 0:
+            return [],[],[]
         cls = cls[:,0]
 
         thresh = self.thresholds[2]
-
         mask = np.where(cls > thresh)
+
+        if len(mask[0]) == 0:
+            return [],[],[]
 
         cls = cls[mask]
         bbr = bbr[mask]
@@ -214,6 +209,10 @@ class Mtcnn(object):
             return cls,bbxs,landmark
 
         cls,bbxs,landmark = self.detect_onet(img,bbxs)
+        #由于RNet的框不够精确导致ONet的特征点出现了偏移，
+        #所以在ONet的输出上再调用一次ONet，输出的特征点更加精确
+        #或者可以选择重新训练ONet
+        # cls,bbxs,landmark = self.detect_onet(img,bbxs)
 
         return cls,bbxs,landmark
 
@@ -229,7 +228,7 @@ if __name__ == "__main__":
     # print(bbxs)
 
     start = time.time()
-    img_path = "/root/face/alignment/mtcnn_tf_python/data/origin/lfw_5590/Aaron_Eckhart_0001.jpg"
+    img_path = "/root/face/alignment/mtcnn_tf_python/data/origin/net_7876/1030_0_0.jpg"
     img = cv2.imread(img_path,cv2.IMREAD_COLOR)
     cls,bbxs,landmark = mtcnn.detect(img)
     print("时长：%r"%(time.time()-start))
